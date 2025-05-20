@@ -1,0 +1,134 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Usuario {
+  rut         String            @id @db.VarChar(10)
+  email       String            @db.VarChar(100)
+  nombres     String            @db.VarChar(100)
+  apellidos   String            @db.VarChar(100)
+  telefono    String?           @db.VarChar(20)
+
+  perfilActividad     Perfil_Actividad[]
+  actividades         Usuario_Actividad[]
+  ubicacion           Usuario_Ubicacion?
+}
+
+model Ubicacion {
+  id_ubi     Int       @id @default(autoincrement())
+  ciudad     String    @db.VarChar(50)
+  region     String?   @db.VarChar(50)
+  pais       String    @db.VarChar(50)
+
+  condiciones  Condiciones_Climaticas[]
+  usuario      Usuario_Ubicacion[]
+}
+
+model Actividad {
+  id_actividad Int     @id @default(autoincrement())
+  nombre       String  @db.VarChar(100)
+
+  perfiles     Perfil_Actividad[]
+  usuarios     Usuario_Actividad[]
+}
+
+model Perfil_Actividad {
+  id_perfil          Int     @id @default(autoincrement())
+  rut_usuario        String
+  id_actividad       Int
+  temp_min           Float
+  temp_max           Float
+  viento_max         Float
+  rayo_uv_max        Float
+  lluvia             Boolean
+  max_precipitaciones Float
+
+  usuario      Usuario  @relation(fields: [rut_usuario], references: [rut])
+  actividad    Actividad @relation(fields: [id_actividad], references: [id_actividad])
+  recomendaciones Recomendacion[]
+  alertas         Alerta[]
+  relaciones      Relacion_PerfilCondicion[]
+}
+
+model Condiciones_Climaticas {
+  id_condicion Int     @id @default(autoincrement())
+  temperatura  Float
+  viento       Float
+  rayo_uv      Float
+  lluvia       Float
+  id_ubi       Int
+
+  ubicacion    Ubicacion @relation(fields: [id_ubi], references: [id_ubi])
+  recomendaciones Recomendacion[]
+  alertas         Alerta[]
+  relaciones      Relacion_PerfilCondicion[]
+}
+
+model Fecha {
+  id_fecha Int @id @default(autoincrement())
+  dia      Int
+  mes      Int
+  anio     Int
+
+  recomendaciones Recomendacion[]
+  alertas         Alerta[]
+}
+
+model Recomendacion {
+  id_recomendacion Int    @id @default(autoincrement())
+  nombre           String @db.VarChar(100)
+  mensaje          String
+  id_perfil        Int
+  id_condicion     Int
+  id_fecha         Int
+
+  perfil           Perfil_Actividad @relation(fields: [id_perfil], references: [id_perfil])
+  condicion        Condiciones_Climaticas @relation(fields: [id_condicion], references: [id_condicion])
+  fecha            Fecha @relation(fields: [id_fecha], references: [id_fecha])
+}
+
+model Alerta {
+  id_alerta    Int    @id @default(autoincrement())
+  mensaje      String
+  id_perfil    Int
+  id_condicion Int
+  id_fecha     Int
+
+  perfil       Perfil_Actividad @relation(fields: [id_perfil], references: [id_perfil])
+  condicion    Condiciones_Climaticas @relation(fields: [id_condicion], references: [id_condicion])
+  fecha        Fecha @relation(fields: [id_fecha], references: [id_fecha])
+}
+
+model Relacion_PerfilCondicion {
+  id_perfil    Int
+  id_condicion Int
+
+  perfil    Perfil_Actividad @relation(fields: [id_perfil], references: [id_perfil])
+  condicion Condiciones_Climaticas @relation(fields: [id_condicion], references: [id_condicion])
+
+  @@id([id_perfil, id_condicion])
+}
+
+model Usuario_Actividad {
+  rut_usuario  String
+  id_actividad Int
+
+  usuario   Usuario   @relation(fields: [rut_usuario], references: [rut])
+  actividad Actividad @relation(fields: [id_actividad], references: [id_actividad])
+
+  @@id([rut_usuario, id_actividad])
+}
+
+model Usuario_Ubicacion {
+  rut_usuario String  @id
+  id_ubi      Int
+
+  usuario   Usuario   @relation(fields: [rut_usuario], references: [rut])
+  ubicacion Ubicacion @relation(fields: [id_ubi], references: [id_ubi])
+}
+
