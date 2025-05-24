@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_KEY = import.meta.env.VITE_OPENWEATHER_KEY || '077835afd3920269338146ca26383d5f';
+const API_KEY = import.meta.env.VITE_OPENWEATHER_KEY;
 
 export const getWeeklyForecast = async (city = 'Concepcion', country = 'CL') => {
   try {
