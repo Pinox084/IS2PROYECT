@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import {
   Typography,
   Checkbox,
@@ -9,19 +10,6 @@ import {
   MenuItem,
   Select
 } from '@mui/material';
-
-const actividadesPredeterminadas = [
-  'Correr',
-  'Lectura al Aire Libre',
-  'Yoga',
-  'Turismo',
-  'Caminar',
-  'Shopping',
-  'Pescar',
-  'Ciclismo',
-  'Futbol',
-  'Fotografía'
-];
 
 const diasSemana = [
   'Lunes',
@@ -36,6 +24,14 @@ const diasSemana = [
 const PaginaActividades = () => {
   const [actividadesSeleccionadas, setActividadesSeleccionadas] = useState([]);
   const [actividadesGuardadas, setActividadesGuardadas] = useState([]);
+  const [actividadesbd, setActividadesbd] = useState([]); // Nuevo arreglo para actividades desde el backend
+
+  // Obtener actividades desde el backend al cargar el componente
+  useEffect(() => {
+    axios.get('http://localhost:4000/api/actividades')
+      .then(res => setActividadesbd(res.data))
+      .catch(err => console.error('Error al obtener actividades:', err));
+  }, []);
 
   const manejarSeleccion = (actividad) => {
     setActividadesSeleccionadas((prev) =>
@@ -166,12 +162,14 @@ const PaginaActividades = () => {
           }}
         >
           <List>
-            {actividadesPredeterminadas.map((actividad, i) => {
-              const seleccionada = actividadesSeleccionadas.includes(actividad);
+            {actividadesbd.map((actividad, i) => {
+              // Si el backend entrega objetos con propiedad 'nombre', usa actividad.nombre
+              const nombreActividad = actividad.nombre || actividad;
+              const seleccionada = actividadesSeleccionadas.includes(nombreActividad);
               return (
                 <ListItem
                   key={i}
-                  onClick={() => manejarSeleccion(actividad)}
+                  onClick={() => manejarSeleccion(nombreActividad)}
                   sx={{
                     backgroundColor: seleccionada ? '#F6F6F7' : '#fff',
                     borderRadius: 2,
@@ -191,7 +189,7 @@ const PaginaActividades = () => {
                 >
                   <Checkbox
                     checked={seleccionada}
-                    onChange={() => manejarSeleccion(actividad)}
+                    onChange={() => manejarSeleccion(nombreActividad)}
                     onClick={(e) => e.stopPropagation()}
                     sx={{
                       color: '#10487f',
@@ -199,7 +197,7 @@ const PaginaActividades = () => {
                     }}
                   />
                   <Typography sx={{ fontWeight: 700, color: '#575757', fontSize: '1.1rem' }}>
-                    {actividad}
+                    {nombreActividad}
                   </Typography>
                 </ListItem>
               );
