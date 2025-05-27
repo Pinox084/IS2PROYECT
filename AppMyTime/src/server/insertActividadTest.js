@@ -2,16 +2,7 @@
 import { insertarActividad } from './insertData.js';
 import prisma from './prismaClient.js';
 
-'Correr',
-  'Lectura al Aire Libre',
-  'Yoga',
-  'Turismo',
-  'Caminar',
-  'Shopping',
-  'Pescar',
-  'Ciclismo',
-  'Futbol',
-  'Fotografía'
+
 const actividades = [
     'Correr',
     'Lectura al Aire Libre',
@@ -21,7 +12,8 @@ const actividades = [
     'Pescar',
     'Ciclismo',
     'Futbol',
-    'Fotografía'
+    'Fotografía',
+    'Natación'
 ];
 async function main() {
     try {
