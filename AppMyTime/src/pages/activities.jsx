@@ -1,31 +1,37 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import {
   Typography,
   Checkbox,
   List,
   ListItem,
   Box,
-  Button
+  Button,
+  MenuItem,
+  Select
 } from '@mui/material';
 
-const imagenesActividades = {
-  'Correr': 'https://st2.depositphotos.com/2146559/7450/i/380/depositphotos_74505673-stock-photo-runner-athlete-running-at-seaside.jpg',
-  'Lectura al Aire Libre': 'https://st5.depositphotos.com/12248864/73569/i/380/depositphotos_735694884-stock-photo-close-photo-you-can-see.jpg',
-  'Yoga': 'https://st4.depositphotos.com/13194036/38182/i/380/depositphotos_381821650-stock-photo-handsome-young-man-meditating-while.jpg',
-  'Turismo': 'https://st3.depositphotos.com/12332520/19126/i/380/depositphotos_191260114-stock-photo-woman-hiker-mountains-city.jpg',
-  'Caminar': 'https://st3.depositphotos.com/9880800/12768/i/380/depositphotos_127688114-stock-photo-family-walking-in-autumn-forest.jpg',
-  'Shopping': 'https://st5.depositphotos.com/1635543/77601/i/380/depositphotos_776014828-stock-photo-young-woman-walking-busy-city.jpg',
-  'Pescar': 'pesca',
-  'Ciclismo': 'c',
-  'Futbol': 'futbol',
-  'Fotografia': 'fotografia'
-};
-
-const actividadesPredeterminadas = Object.keys(imagenesActividades);
+const diasSemana = [
+  'Lunes',
+  'Martes',
+  'Miércoles',
+  'Jueves',
+  'Viernes',
+  'Sábado',
+  'Domingo'
+];
 
 const PaginaActividades = () => {
   const [actividadesSeleccionadas, setActividadesSeleccionadas] = useState([]);
   const [actividadesGuardadas, setActividadesGuardadas] = useState([]);
+  const [actividadesbd, setActividadesbd] = useState([]); // Nuevo arreglo para actividades desde el backend
+
+  // Obtener actividades desde el backend al cargar el componente
+  useEffect(() => {
+    axios.get('http://localhost:4000/api/actividades')
+      .then(res => setActividadesbd(res.data))
+      .catch(err => console.error('Error al obtener actividades:', err));
+  }, []);
 
   const manejarSeleccion = (actividad) => {
     setActividadesSeleccionadas((prev) =>
@@ -39,15 +45,24 @@ const PaginaActividades = () => {
 
   const guardarActividades = () => {
     setActividadesGuardadas((prev) => {
-      const nuevas = actividadesSeleccionadas.filter((a) => !prev.includes(a));
+      const nuevas = actividadesSeleccionadas
+        .filter((a) => !prev.some((item) => item.nombre === a))
+        .map((actividad) => ({ nombre: actividad, dia: '' }));
       return [...prev, ...nuevas];
     });
   };
 
   const borrarGuardadas = () => setActividadesGuardadas([]);
 
+  const cambiarDiaActividad = (index, nuevoDia) => {
+    const nuevasActividades = [...actividadesGuardadas];
+    nuevasActividades[index].dia = nuevoDia;
+    setActividadesGuardadas(nuevasActividades);
+  };
+
   return (
-    <Box sx={{}}>
+    <Box>
+      {/* Encabezado */}
       <Box
         sx={{
           backgroundColor: '#f5f7fb',
@@ -60,9 +75,9 @@ const PaginaActividades = () => {
           mb: 5,
           boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
           border: '1px solid #e0e0e0',
-          ml:5,
-          mt:4
-      }}
+          ml: 5,
+          mt: 4
+        }}
       >
         <Typography
           variant="h4"
@@ -71,29 +86,29 @@ const PaginaActividades = () => {
             color: '#223c6a',
             fontWeight: 700,
             letterSpacing: 1,
-            mt:-3
-            
-        }}
-      >
-        TUS ACTIVIDADES
-      </Typography>
+            mt: -3
+          }}
+        >
+          TUS ACTIVIDADES
+        </Typography>
 
-      <Typography
-        variant="body1"
-        paragraph
-        sx={{
-          color: '#575757',
-          fontSize: '0.9rem',
-          lineHeight: 1.6,
-          mt:-2,
-          textAlign:"justify"
-        }}
-      >
-      Selecciona las actividades de tu preferencia. Puedes elegir varias y guardarlas para futuras recomendaciones
-      </Typography>
-    </Box>
+        <Typography
+          variant="body1"
+          paragraph
+          sx={{
+            color: '#575757',
+            fontSize: '0.9rem',
+            lineHeight: 1.6,
+            mt: -2,
+            textAlign: 'justify'
+          }}
+        >
+          Selecciona las actividades de tu preferencia. Puedes elegir varias y guardarlas para futuras recomendaciones.
+        </Typography>
+      </Box>
 
-      <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, flexWrap: 'wrap',ml:-136, mt:-3 }}>
+      {/* Botones */}
+      <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, flexWrap: 'wrap', ml: -136, mt: -3 }}>
         <Button
           variant="contained"
           onClick={borrarSeleccion}
@@ -125,7 +140,9 @@ const PaginaActividades = () => {
         </Button>
       </Box>
 
-      <Box sx={{ display: 'flex', justifyContent: 'center', gap: 4, mt: 4, flexWrap: 'wrap', ml:-136 }}>
+      {/* Sección de actividades */}
+      <Box sx={{ display: 'flex', justifyContent: 'center', gap: 4, mt: 4, flexWrap: 'wrap', ml: -136 }}>
+        {/* Lista de selección */}
         <Box
           sx={{
             backgroundColor: '#223c6a',
@@ -145,12 +162,14 @@ const PaginaActividades = () => {
           }}
         >
           <List>
-            {actividadesPredeterminadas.map((actividad, i) => {
-              const seleccionada = actividadesSeleccionadas.includes(actividad);
+            {actividadesbd.map((actividad, i) => {
+              // Si el backend entrega objetos con propiedad 'nombre', usa actividad.nombre
+              const nombreActividad = actividad.nombre || actividad;
+              const seleccionada = actividadesSeleccionadas.includes(nombreActividad);
               return (
                 <ListItem
                   key={i}
-                  onClick={() => manejarSeleccion(actividad)}
+                  onClick={() => manejarSeleccion(nombreActividad)}
                   sx={{
                     backgroundColor: seleccionada ? '#F6F6F7' : '#fff',
                     borderRadius: 2,
@@ -170,7 +189,7 @@ const PaginaActividades = () => {
                 >
                   <Checkbox
                     checked={seleccionada}
-                    onChange={() => manejarSeleccion(actividad)}
+                    onChange={() => manejarSeleccion(nombreActividad)}
                     onClick={(e) => e.stopPropagation()}
                     sx={{
                       color: '#10487f',
@@ -178,7 +197,7 @@ const PaginaActividades = () => {
                     }}
                   />
                   <Typography sx={{ fontWeight: 700, color: '#575757', fontSize: '1.1rem' }}>
-                    {actividad}
+                    {nombreActividad}
                   </Typography>
                 </ListItem>
               );
@@ -186,6 +205,7 @@ const PaginaActividades = () => {
           </List>
         </Box>
 
+        {/* Actividades guardadas */}
         <Box
           sx={{
             backgroundColor: '#fff',
@@ -210,10 +230,24 @@ const PaginaActividades = () => {
             ) : (
               <List>
                 {actividadesGuardadas.map((actividad, index) => (
-                  <ListItem key={index}>
-                    <Typography variant="body2" sx={{ color: '#10487f' }}>
-                      {actividad}
+                  <ListItem key={index} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'start' }}>
+                    <Typography variant="body2" sx={{ color: '#10487f', mb: 1 }}>
+                      {actividad.nombre}
                     </Typography>
+                    <Select
+                      value={actividad.dia}
+                      onChange={(e) => cambiarDiaActividad(index, e.target.value)}
+                      displayEmpty
+                      size="small"
+                      sx={{ width: '100%' }}
+                    >
+                      <MenuItem value="">Seleccionar día</MenuItem>
+                      {diasSemana.map((dia) => (
+                        <MenuItem key={dia} value={dia}>
+                          {dia}
+                        </MenuItem>
+                      ))}
+                    </Select>
                   </ListItem>
                 ))}
               </List>
