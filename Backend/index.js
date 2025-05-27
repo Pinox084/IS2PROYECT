@@ -1,10 +1,11 @@
 // src/server/index.js
-import express from 'express';
-import cors from 'cors';
-import { obtenerActividades, crearActividad } from './controlActividades.js';
+const express = require('express');
+const cors = require('cors');
+const { obtenerActividades, crearActividad } = require('./controlActividades.js');
 
 const app = express();
 app.use(cors());
+app.use(express.static('dist'));
 app.use(express.json());
 
 // Endpoint para obtener todas las actividades
@@ -32,3 +33,4 @@ const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
   console.log(`Servidor backend escuchando en http://localhost:${PORT}`);
 });
+
