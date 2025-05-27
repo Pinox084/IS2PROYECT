@@ -58,7 +58,7 @@ const processForecastData = (forecastData, currentWeather) => {
     let isImportant = false;
 
     if (isToday) {
-      // Datos para el día actual (se mantiene igual)
+      // Datos exclusivos para el día actual
       representativePred = {
         dt: currentWeather.dt,
         main: currentWeather.main,
@@ -66,45 +66,37 @@ const processForecastData = (forecastData, currentWeather) => {
         wind: currentWeather.wind
       };
       
+      // Usamos directamente los datos actuales
       temps.min = Math.round(currentWeather.main.temp_min);
       temps.max = Math.round(currentWeather.main.temp_max);
       temps.avg = Math.round(currentWeather.main.temp);
       hasRain = isRainCondition(currentWeather.weather[0].id);
     } else {
-      // ==============================================
-      // NUEVA LÓGICA PARA DÍAS FUTUROS (PRÓXIMOS 4 DÍAS)
-      // ==============================================
-      
-      // 1. Filtrar predicciones diurnas (8AM - 10PM)
+      // Lógica para días futuros (próximos 4 días)
       const daytimePredictions = dayPredictions.filter(pred => {
         const hour = new Date(pred.dt * 1000).getHours();
         return hour >= 8 && hour <= 22;
       });
 
-      // 2. Prioridad 1: Condiciones extremas (cualquier hora)
       const extremeCondition = dayPredictions.find(pred => 
         pred.weather[0].id >= 200 && pred.weather[0].id < 300 || // Tormentas
         pred.weather[0].id === 771 ||                             // Turbonada
         pred.weather[0].id === 781                                 // Tornado
       );
 
-      // 3. Prioridad 2: Lluvia en horario diurno
       const rainPrediction = daytimePredictions.find(pred => 
         isRainCondition(pred.weather[0].id)
       );
 
-      // 4. Prioridad 3: Cielo muy nublado (diurno)
       const cloudySky = daytimePredictions.find(pred => 
         pred.weather[0].id === 804 ||  // Nublado
         pred.weather[0].id === 803     // Muy nublado
       );
 
-      // 5. Prioridad 4: Cambios bruscos de tiempo
       const hasWeatherChange = dayPredictions.some((pred, i, arr) => 
         i > 0 && pred.weather[0].id !== arr[i-1].weather[0].id
       );
 
-      // Selección final del ícono representativo
       representativePred = extremeCondition || 
                           rainPrediction || 
                           (hasWeatherChange ? daytimePredictions.find(pred => pred.weather[0].id === 804) : null) ||
@@ -113,10 +105,21 @@ const processForecastData = (forecastData, currentWeather) => {
                             const hour = new Date(pred.dt * 1000).getHours();
                             return hour >= 12 && hour <= 15; // Hora peak (mediodía)
                           }) || 
-                          dayPredictions[Math.floor(dayPredictions.length / 2)]; // Predicción del medio
+                          dayPredictions[Math.floor(dayPredictions.length / 2)];
 
       hasRain = !!rainPrediction;
       isImportant = !!extremeCondition || hasRain;
+
+      // Calculamos temperaturas solo para días futuros
+      if (dayPredictions.length > 0) {
+        const allTemps = dayPredictions.map(p => p.main.temp);
+        const allMins = dayPredictions.map(p => p.main.temp_min);
+        const allMaxs = dayPredictions.map(p => p.main.temp_max);
+        
+        temps.min = Math.round(Math.min(...allMins));
+        temps.max = Math.round(Math.max(...allMaxs));
+        temps.avg = Math.round((temps.min + temps.max) / 2);
+      }
     }
 
     // Manejo cuando no hay datos
@@ -140,21 +143,6 @@ const processForecastData = (forecastData, currentWeather) => {
           isImportant: false
         }
       };
-    }
-
-    // Calcular temperaturas (para todos los días)
-    if (dayPredictions.length > 0) {
-      const allTemps = dayPredictions.map(p => p.main.temp);
-      const allMins = dayPredictions.map(p => p.main.temp_min);
-      const allMaxs = dayPredictions.map(p => p.main.temp_max);
-      
-      temps.min = Math.round(Math.min(...allMins));
-      temps.max = Math.round(Math.max(...allMaxs));
-      temps.avg = Math.round((temps.min + temps.max) / 2);
-    } else if (representativePred) {
-      temps.min = Math.round(representativePred.main.temp_min);
-      temps.max = Math.round(representativePred.main.temp_max);
-      temps.avg = Math.round((temps.min + temps.max) / 2);
     }
 
     return {
