@@ -1,4 +1,4 @@
-// src/server/insertActividadTest.js
+
 import { insertarActividad } from './insertData.js';
 import prisma from './prismaClient.js';
 
