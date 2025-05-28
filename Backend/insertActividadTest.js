@@ -1,6 +1,5 @@
-
-import { insertarActividad } from './insertData.js';
-import prisma from './prismaClient.js';
+const { insertarActividad } = require('./insertData');
+const prisma = require('./prismaClient');
 
 
 const actividades = [
