@@ -11,19 +11,28 @@ import {
   InputAdornment,
 } from "@mui/material";
 import { AccountCircle, Email, Phone, LocationOn } from "@mui/icons-material";
+import { useNavigate } from "react-router-dom"; // Importar useNavigate
 
 const UserInfoPage = () => {
   const { userData, setUserData } = useContext(UserContext);
+  const navigate = useNavigate(); // Hook para navegación
   const [isEditable, setIsEditable] = useState(false);
   const [localUserData, setLocalUserData] = useState(userData); // Estado local para edición
   const [message, setMessage] = useState(''); // Para mensajes de éxito/error
 
   const BACKEND_URL = 'http://localhost:3001';
 
-  // Sincroniza el estado local con userData del contexto cuando cambie
+  // Redirigir si es invitado o no hay userData válido para perfil
   useEffect(() => {
+    // Si no hay userData (ej. recién cargado y no hay sesión) O es un invitado
+    if (!userData || userData.isGuest) {
+      // Redirige a la página principal. Los invitados no tienen un perfil para editar.
+      navigate('/time');
+      return;
+    }
+    // Sincroniza el estado local con userData del contexto cuando cambie
     setLocalUserData(userData);
-  }, [userData]);
+  }, [userData, navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -78,8 +87,8 @@ const UserInfoPage = () => {
         setUserData(prevData => ({ // Actualiza el contexto con los nuevos datos
           ...prevData,
           ...data.user, // Recibe los datos actualizados del backend
+          isGuest: false // Asegúrate de que no es invitado
         }));
-        localStorage.setItem('userData', JSON.stringify(data.user)); // Actualiza localStorage también
       } else {
         setMessage(`Error al guardar: ${data.error || 'Algo salió mal.'}`);
       }
@@ -89,8 +98,10 @@ const UserInfoPage = () => {
     }
   };
 
-  if (!userData || !localUserData) {
-    return <Typography>Cargando información del usuario...</Typography>;
+  // No renderizar el formulario si es invitado o si userData aún no está cargado correctamente (y no es invitado)
+  if (!userData || userData.isGuest) {
+    // Si llegamos aquí, es porque la redirección aún no ha ocurrido o se está procesando
+    return <Typography>Cargando información del usuario o redirigiendo...</Typography>;
   }
 
   return (

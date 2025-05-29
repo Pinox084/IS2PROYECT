@@ -5,19 +5,19 @@ import { Box, Button, TextField, Typography, Container, Paper, Link } from "@mui
 import Background from "../components/Background";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import LockIcon from "@mui/icons-material/Lock";
-import { UserContext } from "../context/UserContext";
+import { UserContext } from "../context/UserContext"; // Asegúrate de que UserContext puede manejar 'isGuest'
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
-  const { setUserData } = useContext(UserContext);
+  const { setUserData } = useContext(UserContext); // Asumiendo que setUserData puede actualizar el estado isGuest
 
   const BACKEND_URL = 'http://localhost:3001';
 
   const handleLogin = async () => {
-    setError("");
+    setError(""); // Limpiar errores anteriores
 
     if (!email || !password) {
       setError("Por favor, ingresa tu correo y contraseña.");
@@ -36,24 +36,40 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (response.ok) {
+        // Almacenar datos del usuario y el token, y establecer isGuest en false
         setUserData({
           ...data.user,
           token: data.token,
+          isGuest: false, // No es un invitado
         });
-        localStorage.setItem('userToken', data.token);
-        localStorage.setItem('userData', JSON.stringify(data.user));
-        navigate("/time");
+        navigate("/time"); // Navegar a la página principal
       } else {
-        setError(data.error || 'Error al iniciar sesión.');
+        // Mostrar el error que viene del backend (ej. "Correo no registrado")
+        setError(data.error || 'Error al iniciar sesión. Inténtalo de nuevo.');
       }
     } catch (err) {
       console.error('Error de conexión:', err);
-      setError('No se pudo conectar con el servidor. Inténtalo de nuevo más tarde.');
+      setError('No se pudo conectar con el servidor. Por favor, verifica tu conexión.');
     }
   };
 
   const handleRegisterRedirect = () => {
     navigate("/register");
+  };
+
+  // MODIFICADO: Función para manejar el inicio de sesión como invitado
+  const handleGuestLogin = () => {
+    setUserData({
+      isGuest: true,
+      // Puedes añadir datos dummy o null para invitados, según lo que necesites
+      token: null, // No hay token para invitados
+      rut: null,
+      email: "guest@example.com", // Un email dummy o null para invitados
+      nombres: "Invitado",
+      apellidos: "",
+      telefono: null
+    });
+    navigate("/time"); // Navegar a la página principal directamente
   };
 
   return (
@@ -140,7 +156,6 @@ export default function LoginPage() {
                   helperText={error}
                 />
               </Box>
-              {/* No se necesita el error condicional aquí si el helperText ya lo muestra */}
               <Button
                 variant="contained"
                 fullWidth
@@ -155,6 +170,27 @@ export default function LoginPage() {
               >
                 Iniciar Sesión
               </Button>
+              {/* NUEVO BOTÓN: Ingresar como Invitado */}
+              <Button
+                variant="outlined"
+                fullWidth
+                sx={{
+                  mt: 2,
+                  borderColor: "#1976d2",
+                  color: "#1976d2",
+                  "&:hover": {
+                    backgroundColor: "rgba(25, 118, 210, 0.04)",
+                    borderColor: "#1565c0",
+                    color: "#1565c0"
+                  },
+                  fontFamily: "Poppins, sans-serif",
+                  fontWeight: "bold",
+                }}
+                onClick={handleGuestLogin}
+              >
+                Ingresar como Invitado
+              </Button>
+
               <Box
                 sx={{
                   display: "flex",
