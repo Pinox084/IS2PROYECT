@@ -1,0 +1,21 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "",
+  "license": "MIT",
+  "author": "Franco",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "buildfront": "rmdir /s /q dist & cd ../AppMyTime & npm run build & xcopy dist \"../Backend/dist\" /E /I",
+    "dev": "node --watch index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.8.2",
+    "axios": "^1.9.0",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "prisma": "^6.8.2"
+  }
+}
