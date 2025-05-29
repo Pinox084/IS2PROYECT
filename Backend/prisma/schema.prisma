@@ -108,6 +108,7 @@ model Relacion_PerfilCondicion {
 model Usuario_Actividad {
   rut_usuario  String
   id_actividad Int
+  select_dia   Int       @default(0)
   actividad    Actividad @relation(fields: [id_actividad], references: [id_actividad])
   usuario      Usuario   @relation(fields: [rut_usuario], references: [rut])
 
