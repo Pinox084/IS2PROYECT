@@ -1,4 +1,4 @@
-// Archivo renombrado a controlActividades.js (JavaScript)
+
 
 const prisma = require('./prismaClient.js');
 
