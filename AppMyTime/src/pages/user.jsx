@@ -34,7 +34,7 @@ const RegistroForm = () => {
   const [confirmPasswordError, setConfirmPasswordError] = useState("");
   const [apiError, setApiError] = useState("");
 
-  const BACKEND_URL = 'http://localhost:3001';
+  const BACKEND_URL = 'http://localhost:5173';
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -66,7 +66,7 @@ const RegistroForm = () => {
 
     if (isValid) {
       try {
-        const response = await fetch(`${BACKEND_URL}/api/auth/register`, {
+        const response = await fetch(`${BACKEND_URL}/`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

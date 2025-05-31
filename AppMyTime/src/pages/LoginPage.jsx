@@ -14,7 +14,7 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const { setUserData } = useContext(UserContext); // Asumiendo que setUserData puede actualizar el estado isGuest
 
-  const BACKEND_URL = 'http://localhost:3001';
+  const BACKEND_URL = 'http://localhost:5173';
 
   const handleLogin = async () => {
     setError(""); // Limpiar errores anteriores
@@ -170,7 +170,7 @@ export default function LoginPage() {
               >
                 Iniciar Sesión
               </Button>
-              {/* NUEVO BOTÓN: Ingresar como Invitado */}
+              {}
               <Button
                 variant="outlined"
                 fullWidth

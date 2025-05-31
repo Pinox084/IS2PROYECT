@@ -27,7 +27,7 @@ app.use(express.json()); // Habilita el parsing de JSON
 
 
 // --- RUTA DE LOGIN ---
-app.post('/api/auth/login', async (req, res) => {
+app.post('/login', async (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
@@ -72,7 +72,7 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 // --- RUTA DE REGISTRO (Asegúrate de que use bcrypt para hashear la contraseña) ---
-app.post('/api/auth/register', async (req, res) => {
+app.post('login/', async (req, res) => {
     const { rut, email, nombres, apellidos, telefono, password } = req.body;
 
     // Validación básica de campos
@@ -163,8 +163,8 @@ const authenticateToken = (req, res, next) => {
 // Tu `index.js` ya lo tiene bien implementado.
 
 
-// --- Iniciar el servidor (ya lo tienes) ---
-const PORT = process.env.PORT || 3001;
+// --- Iniciar el servidor (EDITAR CON EL SERVIDOR CORRECTO) ---
+const PORT = process.env.PORT || 5173;
 app.listen(PORT, () => {
   console.log(`Servidor backend corriendo en http://localhost:${PORT}`);
 });

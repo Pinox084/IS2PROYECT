@@ -20,7 +20,7 @@ const UserInfoPage = () => {
   const [localUserData, setLocalUserData] = useState(userData); // Estado local para edición
   const [message, setMessage] = useState(''); // Para mensajes de éxito/error
 
-  const BACKEND_URL = 'http://localhost:3001';
+  const BACKEND_URL = 'http://localhost:5173';
 
   // Redirigir si es invitado o no hay userData válido para perfil
   useEffect(() => {
