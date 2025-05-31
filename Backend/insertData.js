@@ -17,6 +17,6 @@ async function insertarActividad({ nombre }) {
 
 module.exports = {
   insertarUsuario,
-  insertarActividad
+  insertarActividad,
 };
 

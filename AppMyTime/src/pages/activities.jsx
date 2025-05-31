@@ -6,31 +6,42 @@ import {
   List,
   ListItem,
   Box,
-  Button,
-  MenuItem,
-  Select
+  Button
 } from '@mui/material';
 
 const diasSemana = [
-  'Lunes',
-  'Martes',
-  'Miércoles',
-  'Jueves',
-  'Viernes',
-  'Sábado',
-  'Domingo'
+  'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'
 ];
+
+const rutUsuario = '12345678-9'; // Reemplaza con el rut del usuario autenticado
 
 const PaginaActividades = () => {
   const [actividadesSeleccionadas, setActividadesSeleccionadas] = useState([]);
   const [actividadesGuardadas, setActividadesGuardadas] = useState([]);
-  const [actividadesbd, setActividadesbd] = useState([]); // Nuevo arreglo para actividades desde el backend
+  const [actividadesbd, setActividadesbd] = useState([]);
 
-  // Obtener actividades desde el backend al cargar el componente
   useEffect(() => {
-    axios.get('http://localhost:4000/api/actividades')
-      .then(res => setActividadesbd(res.data))
-      .catch(err => console.error('Error al obtener actividades:', err));
+    const obtenerDatos = async () => {
+      try {
+        const resActividades = await axios.get('http://localhost:4000/api/actividades');
+        setActividadesbd(resActividades.data);
+
+        const resGuardadas = await axios.get('http://localhost:4000/api/usuario_actividad', {
+          params: { rut_usuario: rutUsuario }
+        });
+
+        const actividadesUsuario = resGuardadas.data.map((a) => ({
+          nombre: a.nombre,
+          dia: a.dias || []
+        }));
+
+        setActividadesGuardadas(actividadesUsuario);
+      } catch (err) {
+        console.error('Error al obtener datos:', err);
+      }
+    };
+
+    obtenerDatos();
   }, []);
 
   const manejarSeleccion = (actividad) => {
@@ -43,21 +54,57 @@ const PaginaActividades = () => {
 
   const borrarSeleccion = () => setActividadesSeleccionadas([]);
 
-  const guardarActividades = () => {
-    setActividadesGuardadas((prev) => {
-      const nuevas = actividadesSeleccionadas
-        .filter((a) => !prev.some((item) => item.nombre === a))
-        .map((actividad) => ({ nombre: actividad, dia: '' }));
-      return [...prev, ...nuevas];
-    });
+  const guardarActividades = async () => {
+    const nuevas = actividadesSeleccionadas
+      .filter((a) => !actividadesGuardadas.some((item) => item.nombre === a))
+      .map((actividad) => ({ nombre: actividad, dia: [] }));
+
+    for (const act of nuevas) {
+      const actividadBD = actividadesbd.find((a) => a.nombre === act.nombre);
+      if (actividadBD) {
+        try {
+          await axios.post('http://localhost:4000/api/usuario_actividad', {
+            rut_usuario: rutUsuario,
+            id_actividad: actividadBD.id_actividad
+          });
+        } catch (err) {
+          console.error('Error al asociar actividad:', err);
+        }
+      }
+    }
+
+    setActividadesGuardadas((prev) => [...prev, ...nuevas]);
   };
 
-  const borrarGuardadas = () => setActividadesGuardadas([]);
+  const borrarGuardadas = async () => {
+    try {
+      await axios.delete('http://localhost:4000/api/usuario_actividad', {
+        data: { rut_usuario: rutUsuario }
+      });
+      setActividadesGuardadas([]);
+    } catch (error) {
+      console.error('Error al borrar actividades del usuario:', error);
+    }
+  };
 
-  const cambiarDiaActividad = (index, nuevoDia) => {
+  const cambiarDiaActividad = async (index, nuevosDias) => {
     const nuevasActividades = [...actividadesGuardadas];
-    nuevasActividades[index].dia = nuevoDia;
+    const actividad = nuevasActividades[index];
+    actividad.dia = nuevosDias;
     setActividadesGuardadas(nuevasActividades);
+
+    const actividadBD = actividadesbd.find((a) => a.nombre === actividad.nombre);
+    if (!actividadBD) return;
+
+    try {
+      await axios.post('http://localhost:4000/api/usuario_actividad_dia', {
+        rut_usuario: rutUsuario,
+        id_actividad: actividadBD.id_actividad,
+        dias: nuevosDias
+      });
+    } catch (error) {
+      console.error('Error al guardar días de actividad:', error);
+    }
   };
 
   return (
@@ -75,40 +122,24 @@ const PaginaActividades = () => {
           mb: 5,
           boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
           border: '1px solid #e0e0e0',
-          ml: 5,
           mt: 4
         }}
       >
-        <Typography
-          variant="h4"
-          gutterBottom
-          sx={{
-            color: '#223c6a',
-            fontWeight: 700,
-            letterSpacing: 1,
-            mt: -3
-          }}
-        >
+        <Typography variant="h4" gutterBottom sx={{ color: '#223c6a', fontWeight: 700, letterSpacing: 1, mt: -3 }}>
           TUS ACTIVIDADES
         </Typography>
 
         <Typography
           variant="body1"
           paragraph
-          sx={{
-            color: '#575757',
-            fontSize: '0.9rem',
-            lineHeight: 1.6,
-            mt: -2,
-            textAlign: 'justify'
-          }}
+          sx={{ color: '#575757', fontSize: '0.9rem', lineHeight: 1.6, mt: -2, textAlign: 'justify' }}
         >
           Selecciona las actividades de tu preferencia. Puedes elegir varias y guardarlas para futuras recomendaciones.
         </Typography>
       </Box>
 
       {/* Botones */}
-      <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, flexWrap: 'wrap', ml: -136, mt: -3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, flexWrap: 'wrap', mt: -3 }}>
         <Button
           variant="contained"
           onClick={borrarSeleccion}
@@ -141,7 +172,7 @@ const PaginaActividades = () => {
       </Box>
 
       {/* Sección de actividades */}
-      <Box sx={{ display: 'flex', justifyContent: 'center', gap: 4, mt: 4, flexWrap: 'wrap', ml: -136 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'center', gap: 4, mt: 4, flexWrap: 'wrap' }}>
         {/* Lista de selección */}
         <Box
           sx={{
@@ -152,18 +183,12 @@ const PaginaActividades = () => {
             height: '400px',
             overflowY: 'auto',
             boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.1)',
-            '&::-webkit-scrollbar': {
-              width: '10px'
-            },
-            '&::-webkit-scrollbar-thumb': {
-              backgroundColor: '#10487f',
-              borderRadius: '10px'
-            }
+            '&::-webkit-scrollbar': { width: '10px' },
+            '&::-webkit-scrollbar-thumb': { backgroundColor: '#10487f', borderRadius: '10px' }
           }}
         >
           <List>
             {actividadesbd.map((actividad, i) => {
-              // Si el backend entrega objetos con propiedad 'nombre', usa actividad.nombre
               const nombreActividad = actividad.nombre || actividad;
               const seleccionada = actividadesSeleccionadas.includes(nombreActividad);
               return (
@@ -211,49 +236,71 @@ const PaginaActividades = () => {
             backgroundColor: '#fff',
             borderRadius: 4,
             padding: 3,
-            width: '360px',
-            height: '400px',
+            width: '700px',
+            minHeight: '400px',
+            maxHeight: '400px',
             boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
             display: 'flex',
             flexDirection: 'column',
-            justifyContent: 'space-between'
+            justifyContent: 'space-between',
+            overflow: 'hidden'
           }}
         >
-          <Box sx={{ overflowY: 'auto', flexGrow: 1 }}>
-            <Typography variant="h6" gutterBottom sx={{ color: '#223c6a' }}>
-              Tus Actividades Guardadas
+          <Typography variant="h6" gutterBottom sx={{ color: '#223c6a' }}>
+            Tus Actividades Guardadas
+          </Typography>
+          {actividadesGuardadas.length === 0 ? (
+            <Typography variant="body2" color="#575757">
+              No has guardado actividades.
             </Typography>
-            {actividadesGuardadas.length === 0 ? (
-              <Typography variant="body2" color="#575757">
-                No has guardado actividades.
-              </Typography>
-            ) : (
-              <List>
-                {actividadesGuardadas.map((actividad, index) => (
-                  <ListItem key={index} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'start' }}>
-                    <Typography variant="body2" sx={{ color: '#10487f', mb: 1 }}>
-                      {actividad.nombre}
-                    </Typography>
-                    <Select
-                      value={actividad.dia}
-                      onChange={(e) => cambiarDiaActividad(index, e.target.value)}
-                      displayEmpty
-                      size="small"
-                      sx={{ width: '100%' }}
-                    >
-                      <MenuItem value="">Seleccionar día</MenuItem>
+          ) : (
+            <Box
+              component="div"
+              sx={{
+                flex: 1,
+                overflowY: 'auto',
+                maxHeight: '300px',
+                mt: 2
+              }}
+            >
+              <Box component="table" sx={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr>
+                    <th style={{ textAlign: 'left', padding: 8, color: '#223c6a' }}>Actividad</th>
+                    {diasSemana.map((dia) => (
+                      <th key={dia} style={{ textAlign: 'center', padding: 8, color: '#223c6a' }}>{dia}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {actividadesGuardadas.map((actividad, index) => (
+                    <tr key={index}>
+                      <td style={{ fontWeight: 700, color: '#10487f', padding: 8 }}>{actividad.nombre}</td>
                       {diasSemana.map((dia) => (
-                        <MenuItem key={dia} value={dia}>
-                          {dia}
-                        </MenuItem>
+                        <td key={dia} style={{ textAlign: 'center', padding: 8 }}>
+                          <Checkbox
+                            checked={Array.isArray(actividad.dia) ? actividad.dia.includes(dia) : false}
+                            onChange={() => {
+                              const nuevosDias = Array.isArray(actividad.dia)
+                                ? (actividad.dia.includes(dia)
+                                  ? actividad.dia.filter((d) => d !== dia)
+                                  : [...actividad.dia, dia])
+                                : [dia];
+                              cambiarDiaActividad(index, nuevosDias);
+                            }}
+                            sx={{
+                              color: '#10487f',
+                              '&.Mui-checked': { color: '#1976d2' }
+                            }}
+                          />
+                        </td>
                       ))}
-                    </Select>
-                  </ListItem>
-                ))}
-              </List>
-            )}
-          </Box>
-
+                    </tr>
+                  ))}
+                </tbody>
+              </Box>
+            </Box>
+          )}
           <Button
             variant="outlined"
             onClick={borrarGuardadas}
