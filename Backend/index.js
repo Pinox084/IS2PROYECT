@@ -12,9 +12,11 @@ const {
 } = require('./controlActividades.js');
 
 const app = express();
+app.use(express.json());
+
 app.use(cors());
 app.use(express.static('dist'));
-app.use(express.json());
+
 
 // Obtener todas las actividades
 app.get('/api/actividades', async (req, res) => {
@@ -98,32 +100,38 @@ app.delete('/api/usuario_actividad', async (req, res) => {
 });
 
 // Obtener actividades asociadas a un usuario
-app.get('/api/usuario_actividad/:rut_usuario', async (req, res) => {
+app.get('/api/usuario_actividad', async (req, res) => {
+  const { rut_usuario } = req.query;
+  console.log('🟢 Recibida petición PUT /api/actividades/actividades', req.body);
   try {
-    const { rut_usuario } = req.params;
     const actividades = await obtenerActividadesUsuario(rut_usuario);
     res.json(actividades);
   } catch (error) {
-    res.status(500).json({ error: 'Error al obtener actividades del usuario', detalles: error.message });
+    console.error('Error al obtener actividades:', error);
+    res.status(500).json({ error: 'Error al obtener actividades del usuario' });
   }
 });
 
-// Modificar día asociado a una actividad del usuario
-app.put('/api/actividades/modificar-dia', async (req, res) => {
+
+app.put('/api/usuario/dia' , async (req, res) =>{
+
+  console.log('🟢 Recibida petición PUT /api/actividades/modificar-dia', req.body);
+  console.log('Mondongo')
   const { rut_usuario, id_actividad, nuevoDia } = req.body;
 
   if (!rut_usuario || !id_actividad || !nuevoDia) {
-    return res.status(400).json({ error: 'Datos incompletos para modificar día' });
+    return res.status(400).json({ error: 'Faltan datos para modificar día' });
   }
 
   try {
-    const relaciones = await modifDiaActividadUsuario(rut_usuario, id_actividad, nuevoDia);
-    res.json(relaciones);
+    const resultado = await modifDiaActividadUsuario(rut_usuario, id_actividad, nuevoDia);
+    res.json({ mensaje: 'Día modificado', actividades: resultado });
   } catch (err) {
-    res.status(500).json({ error: 'Error al actualizar día', detalles: err.message });
+    console.error('❌ Error en modificar-dia:', err);
+    res.status(500).json({ error: 'Error en servidor', detalles: err.message });
   }
 });
-
+  
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
   console.log(`[Servidor] Escuchando en http://localhost:${PORT}`);
