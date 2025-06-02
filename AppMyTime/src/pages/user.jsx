@@ -1,5 +1,6 @@
+// src/pages/user.jsx (RegistroForm)
 import React, { useState, useContext } from "react";
-import { UserContext } from "../context/UserContext"; // Importa el contexto
+import { UserContext } from "../context/UserContext";
 import {
   Box,
   TextField,
@@ -13,69 +14,92 @@ import { AccountCircle, Email, Lock, LockOutlined, Phone, LocationOn } from "@mu
 import { useNavigate } from "react-router-dom";
 
 const RegistroForm = () => {
-  const { setUserData } = useContext(UserContext); // Obtén la función para actualizar el contexto
+  const { setUserData } = useContext(UserContext);
   const navigate = useNavigate();
 
-  const [nombre, setNombre] = useState("");
+  const [rut, setRut] = useState("");
+  const [nombres, setNombres] = useState("");
+  const [apellidos, setApellidos] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [phone, setPhone] = useState("");
-  const [location, setLocation] = useState("");
+  const [telefono, setTelefono] = useState("");
+  const [ubicacion, setUbicacion] = useState(""); // Usaremos esto para el campo 'ubicacion_texto' si lo agregaste a Usuario
 
-  const [nombreError, setNombreError] = useState("");
+  const [rutError, setRutError] = useState("");
+  const [nombresError, setNombresError] = useState("");
+  const [apellidosError, setApellidosError] = useState("");
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [confirmPasswordError, setConfirmPasswordError] = useState("");
+  const [apiError, setApiError] = useState("");
 
-  const handleSubmit = (event) => {
+  const BACKEND_URL = 'http://localhost:3001';
+
+  const handleSubmit = async (event) => {
     event.preventDefault();
     let isValid = true;
+    setApiError("");
 
-    if (!nombre) {
-      setNombreError("Por favor, ingresa tu nombre.");
-      isValid = false;
-    } else {
-      setNombreError("");
-    }
+    // Resetear todos los errores
+    setRutError("");
+    setNombresError("");
+    setApellidosError("");
+    setEmailError("");
+    setPasswordError("");
+    setConfirmPasswordError("");
 
-    if (!email) {
-      setEmailError("Por favor, ingresa tu email.");
-      isValid = false;
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      setEmailError("Por favor, ingresa un email válido.");
-      isValid = false;
-    } else {
-      setEmailError("");
-    }
+    // Validaciones frontend
+    if (!rut) { setRutError("El RUT es obligatorio."); isValid = false; }
+    if (!nombres) { setNombresError("Los nombres son obligatorios."); isValid = false; }
+    if (!apellidos) { setApellidosError("Los apellidos son obligatorios."); isValid = false; }
+    if (!email) { setEmailError("El email es obligatorio."); isValid = false; }
+    else if (!/\S+@\S+\.\S+/.test(email)) { setEmailError("Ingresa un email válido."); isValid = false; }
 
-    if (!password) {
-      setPasswordError("Por favor, ingresa una contraseña.");
-      isValid = false;
-    } else if (password.length < 6) {
-      setPasswordError("La contraseña debe tener al menos 6 caracteres.");
-      isValid = false;
-    } else {
-      setPasswordError("");
-    }
+    if (!password) { setPasswordError("La contraseña es obligatoria."); isValid = false; }
+    else if (password.length < 6) { setPasswordError("La contraseña debe tener al menos 6 caracteres."); isValid = false; }
 
     if (password !== confirmPassword) {
       setConfirmPasswordError("Las contraseñas no coinciden.");
       isValid = false;
-    } else {
-      setConfirmPasswordError("");
     }
 
     if (isValid) {
-      // Guarda los datos en el contexto
-      setUserData({
-        name: nombre,
-        email: email,
-        phone: phone,
-        location: location,
-      });
-      alert("Usuario registrado correctamente");
-      navigate("/user"); // Redirige a la página de información del usuario
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/auth/register`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            rut,
+            email,
+            password,
+            nombres,
+            apellidos,
+            telefono,
+            ubicacion_texto: ubicacion, // Si el backend espera un campo de texto para la ubicación
+          }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          alert("Usuario registrado correctamente");
+          setUserData({
+            ...data.user,
+            token: data.token,
+          });
+          localStorage.setItem('userToken', data.token);
+          localStorage.setItem('userData', JSON.stringify(data.user));
+          navigate("/time");
+        } else {
+          setApiError(data.error || 'Error desconocido al registrar.');
+        }
+      } catch (error) {
+        console.error('Error de conexión:', error);
+        setApiError('No se pudo conectar con el servidor. Inténtalo de nuevo más tarde.');
+      }
     }
   };
 
@@ -114,22 +138,35 @@ const RegistroForm = () => {
           sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 2 }}
         >
           <TextField
-            label="Nombre"
+            label="RUT"
             variant="filled"
             fullWidth
-            value={nombre}
-            onChange={(e) => setNombre(e.target.value)}
-            error={!!nombreError}
-            helperText={nombreError}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <AccountCircle />
-                </InputAdornment>
-              ),
-            }}
+            value={rut}
+            onChange={(e) => setRut(e.target.value)}
+            error={!!rutError}
+            helperText={rutError}
+            InputProps={{ startAdornment: (<InputAdornment position="start"><AccountCircle /></InputAdornment>), }}
           />
-
+          <TextField
+            label="Nombres"
+            variant="filled"
+            fullWidth
+            value={nombres}
+            onChange={(e) => setNombres(e.target.value)}
+            error={!!nombresError}
+            helperText={nombresError}
+            InputProps={{ startAdornment: (<InputAdornment position="start"><AccountCircle /></InputAdornment>), }}
+          />
+          <TextField
+            label="Apellidos"
+            variant="filled"
+            fullWidth
+            value={apellidos}
+            onChange={(e) => setApellidos(e.target.value)}
+            error={!!apellidosError}
+            helperText={apellidosError}
+            InputProps={{ startAdornment: (<InputAdornment position="start"><AccountCircle /></InputAdornment>), }}
+          />
           <TextField
             label="Correo Electrónico"
             variant="filled"
@@ -138,45 +175,24 @@ const RegistroForm = () => {
             onChange={(e) => setEmail(e.target.value)}
             error={!!emailError}
             helperText={emailError}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Email />
-                </InputAdornment>
-              ),
-            }}
+            InputProps={{ startAdornment: (<InputAdornment position="start"><Email /></InputAdornment>), }}
           />
-
           <TextField
             label="Teléfono"
             variant="filled"
             fullWidth
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Phone />
-                </InputAdornment>
-              ),
-            }}
+            value={telefono}
+            onChange={(e) => setTelefono(e.target.value)}
+            InputProps={{ startAdornment: (<InputAdornment position="start"><Phone /></InputAdornment>), }}
           />
-
           <TextField
             label="Ubicación"
             variant="filled"
             fullWidth
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <LocationOn />
-                </InputAdornment>
-              ),
-            }}
+            value={ubicacion}
+            onChange={(e) => setUbicacion(e.target.value)}
+            InputProps={{ startAdornment: (<InputAdornment position="start"><LocationOn /></InputAdornment>), }}
           />
-
           <TextField
             label="Contraseña"
             type="password"
@@ -186,15 +202,8 @@ const RegistroForm = () => {
             onChange={(e) => setPassword(e.target.value)}
             error={!!passwordError}
             helperText={passwordError}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Lock />
-                </InputAdornment>
-              ),
-            }}
+            InputProps={{ startAdornment: (<InputAdornment position="start"><Lock /></InputAdornment>), }}
           />
-
           <TextField
             label="Confirmar Contraseña"
             type="password"
@@ -204,29 +213,24 @@ const RegistroForm = () => {
             onChange={(e) => setConfirmPassword(e.target.value)}
             error={!!confirmPasswordError}
             helperText={confirmPasswordError}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <LockOutlined />
-                </InputAdornment>
-              ),
-            }}
+            InputProps={{ startAdornment: (<InputAdornment position="start"><LockOutlined /></InputAdornment>), }}
           />
+
+          {apiError && (
+            <Typography color="error" variant="body2" sx={{ mt: 1, textAlign: 'center' }}>
+              {apiError}
+            </Typography>
+          )}
 
           <Button
             type="submit"
             variant="contained"
             fullWidth
             sx={{
-              mt: 2,
-              py: 1.5,
-              fontWeight: "bold",
-              fontSize: "1rem",
+              mt: 2, py: 1.5, fontWeight: "bold", fontSize: "1rem",
               background: "linear-gradient(to right, #1976d2, #42a5f5)",
               color: "white",
-              "&:hover": {
-                background: "linear-gradient(to right, #1565c0, #2196f3)",
-              },
+              "&:hover": { background: "linear-gradient(to right, #1565c0, #2196f3)", },
             }}
           >
             Registrarse
