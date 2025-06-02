@@ -19,7 +19,7 @@ const Background = ({ children }) => {
           top: 0,
           left: 0,
           width: '100%',
-          height: '100vh',
+          height: '100%',
           backgroundImage: 'url(/fondo4.jpg)',
           backgroundSize: 'cover',
           backgroundRepeat: 'no-repeat',
@@ -36,8 +36,8 @@ const Background = ({ children }) => {
           top: 0,
           left: 0,
           width: '100%',
-          height: '100vh',
-          backgroundColor: 'rgba(255, 255, 255, 0.5)', 
+          height: '100%',
+          backgroundColor: 'rgba(255, 255, 255, 0.3)', 
           zIndex: -1,
         }}
       ></div>

@@ -2,11 +2,15 @@
 const express = require('express');
 const cors = require('cors');
 const { obtenerActividades, crearActividad } = require('./controlActividades.js');
+const weatherRouter = require('./weatherRouter');
+const {logger} = require('./middleware')
 
 const app = express();
 app.use(cors());
 app.use(express.static('dist'));
 app.use(express.json());
+app.use(logger);
+app.use('/api/weather', weatherRouter);
 
 // Endpoint para obtener todas las actividades
 app.get('/api/actividades', async (req, res) => {

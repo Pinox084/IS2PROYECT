@@ -52,14 +52,14 @@ const CustomAppBar = () => {
         <Box
           sx={{
             display: 'flex',
-            justifyContent: 'space-between',
+            justifyContent: 'center',
             alignItems: 'center',
             backgroundColor: '#2c5a8a',
             padding: '0.5rem 1rem',
           }}
         >
           {/* Botones de navegación */}
-          <Box sx={{ display: 'flex', gap: '2rem' }}>
+          <Box sx={{ display: 'flex', gap: '2rem', justifyContent: 'center' }}>
             <Button
               color="inherit"
               component={Link}
@@ -105,16 +105,18 @@ const CustomAppBar = () => {
           </Box>
 
           {/* Botón de salir */}
-          <IconButton
-            color="inherit"
-            onClick={handleLogout}
-            sx={{
-              fontFamily: 'Poppins, sans-serif',
-              fontSize: '1.2rem',
-              fontWeight: 'bold',
-              color: '#fff',
-            }}
-          >
+            <IconButton
+              color="inherit"
+              onClick={handleLogout}
+              sx={{
+                position: 'absolute',
+                right: '1rem',
+                fontFamily: 'Poppins, sans-serif',
+                fontSize: '1.2rem',
+                fontWeight: 'bold',
+                color: '#fff',
+              }}
+            >
             <ExitToAppIcon />
           </IconButton>
         </Box>
