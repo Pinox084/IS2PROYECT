@@ -8,14 +8,15 @@ datasource db {
 }
 
 model Usuario {
-  rut             String              @id @db.VarChar(10)
-  email           String              @db.VarChar(100)
+  rut             String              @id @unique @db.VarChar(10)
+  email           String              @unique @db.VarChar(100)
+  password        String              @db.VarChar(255)
   nombres         String              @db.VarChar(100)
   apellidos       String              @db.VarChar(100)
   telefono        String?             @db.VarChar(20)
   perfilActividad Perfil_Actividad[]
   actividades     Usuario_Actividad[]
-  ubicacion       Usuario_Ubicacion?
+  ubicacion_link  Usuario_Ubicacion?
 }
 
 model Ubicacion {

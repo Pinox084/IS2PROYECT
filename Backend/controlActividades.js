@@ -106,14 +106,12 @@ async function obtenerActividadesUsuario(rut_usuario) {
 // Modificar el día de una actividad asociada a un usuario
 async function modifDiaActividadUsuario(rut_usuario, id_actividad, nuevoDia) {
   try {
-    console.log('🛠️ Iniciando modificación de día:', { rut_usuario, id_actividad, nuevoDia });
-
+    
     id_actividad = parseInt(id_actividad);
 
     const usuario = await prisma.usuario.findUnique({ where: { rut: rut_usuario } });
     if (!usuario) throw new Error(`Usuario con rut ${rut_usuario} no encontrado`);
 
-    // Elimina el nuevoDia de todas las demás actividades del usuario
     const relaciones = await prisma.Usuario_Actividad.findMany({ where: { rut_usuario } });
 
     for (const rel of relaciones) {
@@ -134,7 +132,6 @@ async function modifDiaActividadUsuario(rut_usuario, id_actividad, nuevoDia) {
       }
     }
 
-    // Obtiene la relación actual
     const relacionActual = await prisma.Usuario_Actividad.findUnique({
       where: {
         rut_usuario_id_actividad: {
@@ -146,36 +143,26 @@ async function modifDiaActividadUsuario(rut_usuario, id_actividad, nuevoDia) {
 
     if (!relacionActual) throw new Error('La relación usuario-actividad no existe');
 
-    let nuevosDias = Array.isArray(relacionActual.dias) ? [...relacionActual.dias] : [];
-
-    const yaTieneDia = nuevosDias.includes(nuevoDia);
-
-    if (yaTieneDia) {
-      // Eliminar el día si ya estaba
-      nuevosDias = nuevosDias.filter((d) => d !== nuevoDia);
-    } else {
-      // Agregar el día si no estaba
-      nuevosDias.push(nuevoDia);
+    if (!Array.isArray(relacionActual.dias) || !relacionActual.dias.includes(nuevoDia)) {
+      const nuevosDias = [...(relacionActual.dias || []), nuevoDia];
+      await prisma.Usuario_Actividad.update({
+        where: {
+          rut_usuario_id_actividad: {
+            rut_usuario,
+            id_actividad
+          }
+        },
+        data: { dias: nuevosDias }
+      });
     }
 
-    await prisma.Usuario_Actividad.update({
-      where: {
-        rut_usuario_id_actividad: {
-          rut_usuario,
-          id_actividad
-        }
-      },
-      data: { dias: nuevosDias }
-    });
-
-    // Retornar todas las actividades actualizadas del usuario
     return await prisma.Usuario_Actividad.findMany({
       where: { rut_usuario },
       include: { actividad: true }
     });
 
   } catch (error) {
-    console.error("🔥 Error en modifDiaActividadUsuario:", error);
+    console.error("Error en modifDiaActividadUsuario:", error);
     throw error;
   }
 }
