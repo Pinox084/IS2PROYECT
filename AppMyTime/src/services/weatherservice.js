@@ -1,6 +1,10 @@
 import axios from 'axios';
 
+
+
+
 const API_KEY = import.meta.env.VITE_OPENWEATHER_KEY;
+
 
 export const getWeeklyForecast = async (city = 'Concepcion', country = 'CL') => {
   try {
@@ -8,121 +12,62 @@ export const getWeeklyForecast = async (city = 'Concepcion', country = 'CL') => 
     const geoResponse = await axios.get(
       `https://api.openweathermap.org/geo/1.0/direct?q=${city},${country}&limit=1&appid=${API_KEY}`
     );
-
+    
     if (!geoResponse.data[0]) throw new Error('Ubicación no encontrada');
     const { lat, lon } = geoResponse.data[0];
 
-    // 2. Obtener clima actual
-    const currentWeatherResponse = await axios.get(
-      `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&lang=es&appid=${API_KEY}`
-    );
-
-    // 3. Obtener pronóstico 5 días
-    const forecastResponse = await axios.get(
+    // 2. Obtener pronóstico
+    const weatherResponse = await axios.get(
       `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&lang=es&appid=${API_KEY}`
     );
 
-    // 4. Procesar datos
-    return processForecastData(forecastResponse.data, currentWeatherResponse.data);
+    // 3. Procesar datos para 5 días
+    return processForecastData(weatherResponse.data);
   } catch (error) {
     throw new Error(`Error al obtener clima: ${error.response?.data?.message || error.message}`);
   }
 };
 
-const processForecastData = (forecastData, currentWeather) => {
+const processForecastData = (data) => {
   const daysOfWeek = ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB'];
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0); // Normalizar fecha
 
-  // Agrupar pronóstico por día
-  const predictionsByDay = forecastData.list.reduce((acc, item) => {
+  // Agrupar predicciones por día
+  const allPredictionsByDay = data.list.reduce((acc, item) => {
     const date = new Date(item.dt * 1000);
     date.setHours(0, 0, 0, 0);
-    const key = date.toISOString().split('T')[0];
-
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(item);
+    const dayKey = date.toISOString().split('T')[0];
+    
+    if (!acc[dayKey]) acc[dayKey] = [];
+    acc[dayKey].push(item);
     return acc;
   }, {});
 
+  // Generar los próximos 5 días (hoy + 4)
   const dailyData = Array.from({ length: 5 }).map((_, index) => {
     const date = new Date(today);
     date.setDate(today.getDate() + index);
-    const key = date.toISOString().split('T')[0];
+    const dayKey = date.toISOString().split('T')[0];
+    const dayPredictions = allPredictionsByDay[dayKey] || [];
     const isToday = index === 0;
-    const dayPredictions = predictionsByDay[key] || [];
 
-    let representativePred;
-    let temps = { min: undefined, max: undefined, avg: undefined };
-    let hasRain = false;
-    let isImportant = false;
-
-    if (isToday) {
-      // Datos exclusivos para el día actual
-      representativePred = {
-        dt: currentWeather.dt,
-        main: currentWeather.main,
-        weather: currentWeather.weather,
-        wind: currentWeather.wind
-      };
-      
-      // Usamos directamente los datos actuales
-      temps.min = Math.round(currentWeather.main.temp_min);
-      temps.max = Math.round(currentWeather.main.temp_max);
-      temps.avg = Math.round(currentWeather.main.temp);
-      hasRain = isRainCondition(currentWeather.weather[0].id);
-    } else {
-      // Lógica para días futuros (próximos 4 días)
-      const daytimePredictions = dayPredictions.filter(pred => {
-        const hour = new Date(pred.dt * 1000).getHours();
-        return hour >= 8 && hour <= 22;
-      });
-
-      const extremeCondition = dayPredictions.find(pred => 
-        pred.weather[0].id >= 200 && pred.weather[0].id < 300 || // Tormentas
-        pred.weather[0].id === 771 ||                             // Turbonada
-        pred.weather[0].id === 781                                 // Tornado
-      );
-
-      const rainPrediction = daytimePredictions.find(pred => 
-        isRainCondition(pred.weather[0].id)
-      );
-
-      const cloudySky = daytimePredictions.find(pred => 
-        pred.weather[0].id === 804 ||  // Nublado
-        pred.weather[0].id === 803     // Muy nublado
-      );
-
-      const hasWeatherChange = dayPredictions.some((pred, i, arr) => 
-        i > 0 && pred.weather[0].id !== arr[i-1].weather[0].id
-      );
-
-      representativePred = extremeCondition || 
-                          rainPrediction || 
-                          (hasWeatherChange ? daytimePredictions.find(pred => pred.weather[0].id === 804) : null) ||
-                          cloudySky || 
-                          daytimePredictions.find(pred => {
-                            const hour = new Date(pred.dt * 1000).getHours();
-                            return hour >= 12 && hour <= 15; // Hora peak (mediodía)
-                          }) || 
-                          dayPredictions[Math.floor(dayPredictions.length / 2)];
-
-      hasRain = !!rainPrediction;
-      isImportant = !!extremeCondition || hasRain;
-
-      // Calculamos temperaturas solo para días futuros
-      if (dayPredictions.length > 0) {
-        const allTemps = dayPredictions.map(p => p.main.temp);
-        const allMins = dayPredictions.map(p => p.main.temp_min);
-        const allMaxs = dayPredictions.map(p => p.main.temp_max);
-        
-        temps.min = Math.round(Math.min(...allMins));
-        temps.max = Math.round(Math.max(...allMaxs));
-        temps.avg = Math.round((temps.min + temps.max) / 2);
+    // Encontrar primera lluvia diurna (8am-10pm)
+    let firstDaytimeRain = null;
+    for (const pred of dayPredictions) {
+      const predDate = new Date(pred.dt * 1000);
+      const hour = predDate.getHours();
+      if (hour >= 8 && hour <= 22 && isRainCondition(pred.weather[0].id)) {
+        firstDaytimeRain = pred;
+        break;
       }
     }
 
-    // Manejo cuando no hay datos
+    const representativePred = firstDaytimeRain || 
+                             (dayPredictions[Math.floor(dayPredictions.length / 2)] || 
+                              dayPredictions[0]);
+
+    // Si no hay datos para ese día, usar valores por defecto
     if (!representativePred) {
       return {
         day: daysOfWeek[date.getDay()],
@@ -136,7 +81,6 @@ const processForecastData = (forecastData, currentWeather) => {
           temp: '--°C',
           temp_min: '--',
           temp_max: '--',
-          temp_range: '--',
           humidity: '--%',
           wind: '-- km/h',
           hasRain: false,
@@ -154,30 +98,49 @@ const processForecastData = (forecastData, currentWeather) => {
         condition: translateWeather(representativePred.weather[0].main),
         description: representativePred.weather[0].description,
         icon: representativePred.weather[0].icon,
-        temp: `${temps.avg}°C`,
-        temp_min: temps.min ?? '--',
-        temp_max: temps.max ?? '--',
-        temp_range: (temps.min !== undefined && temps.max !== undefined)
-          ? `Min: ${temps.min}° / Max: ${temps.max}°`
-          : 'Datos no disponibles',
+        temp: isToday ? Math.round(representativePred.main.temp) : null,
+        temp_min: dayPredictions.length > 0 
+          ? Math.min(...dayPredictions.map(p => p.main.temp_min)) 
+          : '--',
+        temp_max: dayPredictions.length > 0 
+          ? Math.max(...dayPredictions.map(p => p.main.temp_max)) 
+          : '--',
         humidity: `${representativePred.main.humidity}%`,
         wind: `${(representativePred.wind.speed * 3.6).toFixed(1)} km/h`,
-        hasRain,
-        isImportant
+        hasRain: !!firstDaytimeRain,
+        isImportant: !!firstDaytimeRain && !isToday
       }
     };
+  });
+
+  // Calcular promedios y formatear
+  dailyData.forEach(day => {
+    if (day.weather.temp !== null) {
+      day.weather.temp = `${day.weather.temp}°C`;
+    } else {
+      const avg = (Number(day.weather.temp_min) + Number(day.weather.temp_max)) / 2;
+      day.weather.temp = !isNaN(avg) ? `${Math.round(avg)}°C` : '--°C';
+    }
+    
+    if (day.weather.temp_min !== '--' && day.weather.temp_max !== '--') {
+      day.weather.temp_range = `Min: ${Math.round(day.weather.temp_min)}° / Max: ${Math.round(day.weather.temp_max)}°`;
+    } else {
+      day.weather.temp_range = 'Datos no disponibles';
+    }
   });
 
   return dailyData;
 };
 
 const isRainCondition = (weatherId) => {
-  return (weatherId >= 200 && weatherId < 600) && 
-         !(weatherId >= 700 && weatherId < 800);
+  return weatherId >= 200 && weatherId < 600;
 };
 
 const formatSpanishDate = (date) => {
-  return date.toLocaleDateString('es-CL', { day: 'numeric', month: 'long' }).replace(/^(\d+)\sde\s/, '$1 de ');
+  return date.toLocaleDateString('es-CL', { 
+    day: 'numeric', 
+    month: 'long' 
+  }).replace(/^(\d+)\sde\s/, '$1 de ');
 };
 
 const translateWeather = (condition) => {
@@ -195,12 +158,9 @@ const translateWeather = (condition) => {
   return translations[condition] || condition;
 };
 
-export const getWeatherIconUrl = (iconCode, isToday = false) => {
-  // Si es hoy, mantenemos el icono original (puede terminar en 'd' o 'n')
-  if (isToday) {
-    return `https://openweathermap.org/img/wn/${iconCode || '01d'}@4x.png`;
-  }
-  // Para días futuros, forzamos el icono de día
+
+// Función para obtener la URL del icono y que salga siempre con final d para que salga el icono de día (exportada para usar en componentes)
+export const getWeatherIconUrl = (iconCode) => {
   const daytimeIconCode = iconCode?.endsWith('n') ? iconCode.slice(0, -1) + "d" : iconCode;
   return `https://openweathermap.org/img/wn/${daytimeIconCode || '01d'}@4x.png`;
 };
