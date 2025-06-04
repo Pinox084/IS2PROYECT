@@ -1,4 +1,5 @@
 const axios = require('axios')
+require('dotenv').config()
 
 const API_KEY = process.env.OPENWEATHER_KEY;
 
@@ -9,7 +10,7 @@ const WEATHER_PRIORITIES = {
   'Nieve': 2,
   'Lluvia': 3,
   'Llovizna': 4,
-  'default': 98
+  'default': 98 
 };
 
 const getWeatherPriority = (condition) => 
@@ -30,6 +31,7 @@ const getPriorityWeather = (dayWeathers) => {
 const getWeeklyForecast = async (city = 'Concepcion', country = 'CL') => {
   try {
     // 1. Obtener coordenadas
+    console.log(API_KEY)
     const geoResponse = await axios.get(
       `https://api.openweathermap.org/geo/1.0/direct?q=${city},${country}&limit=1&appid=${API_KEY}`
     );

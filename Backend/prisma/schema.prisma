@@ -17,28 +17,26 @@ model Usuario {
   perfilActividad Perfil_Actividad[]
   actividades     Usuario_Actividad[]
   ubicacion_link  Usuario_Ubicacion?
-
 }
 
 model Ubicacion {
-  id_ubi           Int                      @id @default(autoincrement())
-  ciudad           String                   @db.VarChar(50)
-  region           String?                  @db.VarChar(50)
-  pais             String                   @db.VarChar(50)
-  condiciones      Condiciones_Climaticas[]
-  // Cambio en la relación con Usuario, ahora es a través de Usuario_Ubicacion
+  id_ubi            Int                      @id @default(autoincrement())
+  ciudad            String                   @db.VarChar(50)
+  region            String?                  @db.VarChar(50)
+  pais              String                   @db.VarChar(50)
+  condiciones       Condiciones_Climaticas[]
   usuario_ubicacion Usuario_Ubicacion[]
 }
 
 model Actividad {
-  id_actividad Int               @id @default(autoincrement())
-  nombre       String            @db.VarChar(100)
+  id_actividad Int                 @id @default(autoincrement())
+  nombre       String              @db.VarChar(100)
   perfiles     Perfil_Actividad[]
   usuarios     Usuario_Actividad[]
 }
 
 model Perfil_Actividad {
-  id_perfil           Int                      @id @default(autoincrement())
+  id_perfil           Int                        @id @default(autoincrement())
   rut_usuario         String
   id_actividad        Int
   temp_min            Float
@@ -48,8 +46,8 @@ model Perfil_Actividad {
   lluvia              Boolean
   max_precipitaciones Float
   alertas             Alerta[]
-  actividad           Actividad                @relation(fields: [id_actividad], references: [id_actividad])
-  usuario             Usuario                  @relation(fields: [rut_usuario], references: [rut])
+  actividad           Actividad                  @relation(fields: [id_actividad], references: [id_actividad])
+  usuario             Usuario                    @relation(fields: [rut_usuario], references: [rut])
   recomendaciones     Recomendacion[]
   relaciones          Relacion_PerfilCondicion[]
 }
@@ -77,15 +75,15 @@ model Fecha {
 }
 
 model Recomendacion {
-  id_recomendacion Int                      @id @default(autoincrement())
-  nombre           String                   @db.VarChar(100)
+  id_recomendacion Int                    @id @default(autoincrement())
+  nombre           String                 @db.VarChar(100)
   mensaje          String
   id_perfil        Int
   id_condicion     Int
   id_fecha         Int
-  condicion        Condiciones_Climaticas   @relation(fields: [id_condicion], references: [id_condicion])
-  fecha            Fecha                    @relation(fields: [id_fecha], references: [id_fecha])
-  perfil           Perfil_Actividad         @relation(fields: [id_perfil], references: [id_perfil])
+  condicion        Condiciones_Climaticas @relation(fields: [id_condicion], references: [id_condicion])
+  fecha            Fecha                  @relation(fields: [id_fecha], references: [id_fecha])
+  perfil           Perfil_Actividad       @relation(fields: [id_perfil], references: [id_perfil])
 }
 
 model Alerta {
@@ -114,11 +112,12 @@ model Usuario_Actividad {
   dias         String[]
   actividad    Actividad @relation(fields: [id_actividad], references: [id_actividad])
   usuario      Usuario   @relation(fields: [rut_usuario], references: [rut])
+
   @@id([rut_usuario, id_actividad])
 }
 
 model Usuario_Ubicacion {
-  rut_usuario String    @id // La clave primaria aquí es el RUT del usuario
+  rut_usuario String    @id
   id_ubi      Int
   ubicacion   Ubicacion @relation(fields: [id_ubi], references: [id_ubi])
   usuario     Usuario   @relation(fields: [rut_usuario], references: [rut])
