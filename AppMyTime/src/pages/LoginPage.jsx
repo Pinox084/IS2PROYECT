@@ -1,27 +1,75 @@
-import React, { useState } from "react";
+// src/pages/LoginPage.jsx
+import React, { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { Box, Button, TextField, Typography, Container, Paper, Link } from "@mui/material";
-import Background from "../components/Background"; // Importa el componente de fondo
+import Background from "../components/Background";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import LockIcon from "@mui/icons-material/Lock";
+import { UserContext } from "../context/UserContext"; // Asegúrate de que UserContext puede manejar 'isGuest'
 
 export default function LoginPage() {
-  const [email, setEmail] = useState(""); // Estado para el correo
-  const [password, setPassword] = useState(""); // Estado para la contraseña
-  const navigate = useNavigate(); // Hook para redirección
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
+  const { setUserData } = useContext(UserContext); // Asumiendo que setUserData puede actualizar el estado isGuest
 
-  const handleLogin = () => {
-    // Validación básica.
-    if (email && password) {
-      console.log("Usuario:", email, "Contraseña:", password); // Solo para pruebas
-      navigate("/time"); // Redirige a la página principal
-    } else {
-      alert("Por favor, ingresa tus datos.");
+  const BACKEND_URL = 'http://localhost:3001';
+
+  const handleLogin = async () => {
+    setError(""); // Limpiar errores anteriores
+
+    if (!email || !password) {
+      setError("Por favor, ingresa tu correo y contraseña.");
+      return;
+    }
+
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Almacenar datos del usuario y el token, y establecer isGuest en false
+        setUserData({
+          ...data.user,
+          token: data.token,
+          isGuest: false, // No es un invitado
+        });
+        navigate("/time"); // Navegar a la página principal
+      } else {
+        // Mostrar el error que viene del backend (ej. "Correo no registrado")
+        setError(data.error || 'Error al iniciar sesión. Inténtalo de nuevo.');
+      }
+    } catch (err) {
+      console.error('Error de conexión:', err);
+      setError('No se pudo conectar con el servidor. Por favor, verifica tu conexión.');
     }
   };
 
   const handleRegisterRedirect = () => {
-    navigate("/register"); // Redirige a la página de registro
+    navigate("/register");
+  };
+
+  // MODIFICADO: Función para manejar el inicio de sesión como invitado
+  const handleGuestLogin = () => {
+    setUserData({
+      isGuest: true,
+      // Puedes añadir datos dummy o null para invitados, según lo que necesites
+      token: null, // No hay token para invitados
+      rut: null,
+      email: "guest@example.com", // Un email dummy o null para invitados
+      nombres: "Invitado",
+      apellidos: "",
+      telefono: null
+    });
+    navigate("/time"); // Navegar a la página principal directamente
   };
 
   return (
@@ -41,7 +89,7 @@ export default function LoginPage() {
               padding: 4,
               borderRadius: 3,
               backgroundColor: "rgba(255, 255, 255, 0.8)",
-              boxShadow: "0 4px 20px rgba(0, 0, 0, 0.2)", 
+              boxShadow: "0 4px 20px rgba(0, 0, 0, 0.2)",
               position: "relative",
             }}
           >
@@ -89,7 +137,9 @@ export default function LoginPage() {
                   margin="normal"
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)} 
+                  onChange={(e) => setEmail(e.target.value)}
+                  error={!!error}
+                  helperText={error}
                 />
               </Box>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1}}>
@@ -102,6 +152,8 @@ export default function LoginPage() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  error={!!error}
+                  helperText={error}
                 />
               </Box>
               <Button
@@ -113,13 +165,32 @@ export default function LoginPage() {
                   "&:hover": { backgroundColor: "#1565c0" },
                   fontFamily: "Poppins, sans-serif",
                   fontWeight: "bold",
-
-                  
                 }}
-                onClick={handleLogin} 
+                onClick={handleLogin}
               >
                 Iniciar Sesión
               </Button>
+              {/* NUEVO BOTÓN: Ingresar como Invitado */}
+              <Button
+                variant="outlined"
+                fullWidth
+                sx={{
+                  mt: 2,
+                  borderColor: "#1976d2",
+                  color: "#1976d2",
+                  "&:hover": {
+                    backgroundColor: "rgba(25, 118, 210, 0.04)",
+                    borderColor: "#1565c0",
+                    color: "#1565c0"
+                  },
+                  fontFamily: "Poppins, sans-serif",
+                  fontWeight: "bold",
+                }}
+                onClick={handleGuestLogin}
+              >
+                Ingresar como Invitado
+              </Button>
+
               <Box
                 sx={{
                   display: "flex",

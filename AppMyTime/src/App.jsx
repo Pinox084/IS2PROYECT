@@ -1,3 +1,4 @@
+// src/App.jsx
 import React from 'react';
 import { BrowserRouter as Router, useLocation } from 'react-router-dom';
 import { CssBaseline } from '@mui/material';
@@ -5,11 +6,12 @@ import AppRoutes from './routes/AppRoutes';
 import CustomAppBar from './components/CustomAppBar';
 import Footer from './components/Footer';
 import Background from './components/Background';
+import { UserProvider } from './context/UserContext'; // <-- Importa UserProvider
 
 const AppContent = () => {
-  const location = useLocation(); // Obtiene la ruta actual
+  const location = useLocation();
 
-  // Verifica si la ruta actual es "/login" o "/register"
+  // Verifica si la ruta actual es la página de login o registro
   const isAuthPage = location.pathname === '/' || location.pathname === '/register';
 
   return (
@@ -42,7 +44,9 @@ const App = () => {
   return (
     <Router>
       <CssBaseline />
-      <AppContent />
+      <UserProvider> {/* <-- Envuelve AppContent con UserProvider para que el contexto sea accesible */}
+        <AppContent />
+      </UserProvider>
     </Router>
   );
 };
