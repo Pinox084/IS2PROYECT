@@ -31,7 +31,7 @@ const getPriorityWeather = (dayWeathers) => {
 const getWeeklyForecast = async (city = 'Concepcion', country = 'CL') => {
   try {
     // 1. Obtener coordenadas
-    console.log(API_KEY)
+    //console.log(API_KEY)
     const geoResponse = await axios.get(
       `https://api.openweathermap.org/geo/1.0/direct?q=${city},${country}&limit=1&appid=${API_KEY}`
     );
@@ -134,7 +134,7 @@ const getWeeklyForecast = async (city = 'Concepcion', country = 'CL') => {
     }
 
     for(const day in forecastData){
-      console.log(forecastData[day])
+      //console.log(forecastData[day])
       forecastData[day].weathers.sort((a, b) => a.dt - b.dt);
       const priorityWeather = getPriorityWeather(forecastData[day].weathers);
       forecastData[day].condition = priorityWeather.condition;
