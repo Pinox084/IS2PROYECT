@@ -42,7 +42,7 @@ const HorizontalWeekCalendar = ({ onDaySelect, forecast, selectedCard }) => {
   );
 
   return (
-    <Box sx={{ p: 4, overflowX: 'auto', mt: -2 }}>
+    <Box sx={{ p: 4, overflowX: 'flex', mt: -2 }}>
       <Box sx={{ 
         backgroundColor: 'rgba(255,255,255,0.9)', 
         borderRadius: 4, 
@@ -52,13 +52,16 @@ const HorizontalWeekCalendar = ({ onDaySelect, forecast, selectedCard }) => {
         mb: 4,
         background: 'white',
       }}>
-        <Typography variant="h4" sx={{ 
-          color: '#2c5a8a', 
-          fontSize: '2rem',
-          fontWeight: 'bold',
-        }}>
-          🌤️ PRONÓSTICO - CONCEPCIÓN, CHILE
-        </Typography>
+      <Typography variant="h4" sx={{ 
+        color: '#2c5a8a', 
+        fontSize: '2rem',
+        fontWeight: 'bold',
+      }}>
+        {forecast?.location ? 
+          `🌤️ PRONÓSTICO - ${forecast.location.city.toUpperCase()}, ${forecast.location.country}` : 
+          '🌤️ PRONÓSTICO'
+        }
+      </Typography>
       </Box>
 
       <Box sx={{ 

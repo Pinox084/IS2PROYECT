@@ -61,7 +61,7 @@ const DayWeatherDetails = ({ dayWeather }) => {
         p: 2,
         borderBottom: '1px solid #e0e0e0',
         '&::-webkit-scrollbar': {
-          height: '6px'
+          height: '8px'
         },
         '&::-webkit-scrollbar-thumb': {
           backgroundColor: theme.palette.grey[400],
@@ -111,7 +111,7 @@ const DayWeatherDetails = ({ dayWeather }) => {
           title="Precipitaciones" 
           value={`${selectedWeather.precipitation.toFixed(1)} mm/h`} 
         />
-        <DetailItem icon="🌡️" title="Sensación" value={`${parseInt(selectedWeather.feels_like) - 2}°C`} />
+        <DetailItem icon="🌡️" title="Sensación" value={`${parseInt(selectedWeather.feels_like)}°C`} />
       </Box>
 
       {/* Recomendación */}
