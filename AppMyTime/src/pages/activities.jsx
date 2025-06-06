@@ -8,17 +8,20 @@ import {
   Box,
   Button
 } from '@mui/material';
-
+import { useUser } from '../context/UserContext';
 const diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-const rutUsuario = '12345678-9'; // Cambia esto por el RUT del usuario autenticado
+
 
 const PaginaActividades = () => {
   const [actividadesSeleccionadas, setActividadesSeleccionadas] = useState([]);
   const [actividadesGuardadas, setActividadesGuardadas] = useState([]);
   const [actividadesbd, setActividadesbd] = useState([]);
+  const { userData } = useUser();
+  const rutUsuario = userData?.rut; 
 
   useEffect(() => {
     const obtenerDatos = async () => {
+    
       try {
         const resActividades = await axios.get('http://localhost:4000/api/actividades');
         setActividadesbd(resActividades.data);
