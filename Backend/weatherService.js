@@ -22,7 +22,7 @@ const getPriorityWeather = (dayWeathers) => {
   for(const weather of dayWeathers){
     const hora = weather.dt_txt.split(" ")[1];
     if(hora < "09:00:00" || hora > "21:00:00") continue;
-    if(hora === "12:00:00") weather12 = weather;
+    if(hora === "11:00:00") weather12 = weather;
     priorityWeather = getWeatherPriority(weather.condition) < getWeatherPriority(priorityWeather.condition) ? weather : priorityWeather;
   }
   return (getWeatherPriority(priorityWeather.condition) === MIN_PRIORITY && weather12 !== null) ? weather12 : priorityWeather;
