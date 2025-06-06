@@ -12,6 +12,8 @@ import {
 } from "@mui/material";
 import { AccountCircle, Email, Lock, LockOutlined, Phone, LocationOn } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
+import { validateRut } from '@fdograph/rut-utilities';
+
 
 const RegistroForm = () => {
   const { setUserData } = useContext(UserContext);
@@ -51,8 +53,13 @@ const RegistroForm = () => {
 
     // Validaciones frontend
     if (!rut) { setRutError("El RUT es obligatorio."); isValid = false; }
-    if (!nombres) { setNombresError("Los nombres son obligatorios."); isValid = false; }
+    else if (!validateRut(rut)) { setRutError("Ingrese un rut válido."); isValid = false}
+    if (!nombres) { setNombresError("Los nombres son obligatorios."); isValid = false }
+    else if (/[0-9]/.test(nombres)) { setNombresError("Ingrese un nombre sin caracteres especiales."); isValid = false }
+    else if (!/^[a-zA-Z0-9\s]+$/.test(nombres)) { setNombresError("Ingrese un nombre sin caracteres especiales."); isValid = false }
     if (!apellidos) { setApellidosError("Los apellidos son obligatorios."); isValid = false; }
+    else if (/[0-9]/.test(apellidos)) { setApellidosError("Ingrese un apellido sin caracteres especiales."); isValid = false }
+    else if (!/^[a-zA-Z0-9\s]+$/.test(apellidos)) { setApellidosError("Ingrese un apellido sin caracteres especiales."); isValid = false }
     if (!email) { setEmailError("El email es obligatorio."); isValid = false; }
     else if (!/\S+@\S+\.\S+/.test(email)) { setEmailError("Ingresa un email válido."); isValid = false; }
 
@@ -145,6 +152,7 @@ const RegistroForm = () => {
             onChange={(e) => setRut(e.target.value)}
             error={!!rutError}
             helperText={rutError}
+            placeholder="111111111-1"
             InputProps={{ startAdornment: (<InputAdornment position="start"><AccountCircle /></InputAdornment>), }}
           />
           <TextField
@@ -155,6 +163,7 @@ const RegistroForm = () => {
             onChange={(e) => setNombres(e.target.value)}
             error={!!nombresError}
             helperText={nombresError}
+            placeholder="Roberto"
             InputProps={{ startAdornment: (<InputAdornment position="start"><AccountCircle /></InputAdornment>), }}
           />
           <TextField
@@ -165,6 +174,7 @@ const RegistroForm = () => {
             onChange={(e) => setApellidos(e.target.value)}
             error={!!apellidosError}
             helperText={apellidosError}
+            placeholder="Fuentes"
             InputProps={{ startAdornment: (<InputAdornment position="start"><AccountCircle /></InputAdornment>), }}
           />
           <TextField
@@ -175,6 +185,7 @@ const RegistroForm = () => {
             onChange={(e) => setEmail(e.target.value)}
             error={!!emailError}
             helperText={emailError}
+            placeholder="correo@electrónico.com"
             InputProps={{ startAdornment: (<InputAdornment position="start"><Email /></InputAdornment>), }}
           />
           <TextField
@@ -183,6 +194,7 @@ const RegistroForm = () => {
             fullWidth
             value={telefono}
             onChange={(e) => setTelefono(e.target.value)}
+            placeholder="912345678"
             InputProps={{ startAdornment: (<InputAdornment position="start"><Phone /></InputAdornment>), }}
           />
           <TextField
