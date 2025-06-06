@@ -62,7 +62,8 @@ const UserInfoPage = () => {
         return;
       }
 
-      const response = await fetch(`${BACKEND_URL}/api/users/${localUserData.rut}`, {
+      //la siguiente es la llamada al backend para actualizar los datos del usuario
+      const response = await fetch(`${BACKEND_URL}/api/uses/${localUserData.rut}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -145,6 +146,7 @@ const UserInfoPage = () => {
             fullWidth
             name="rut"
             value={localUserData.rut || ''}
+            disabled={!isEditable}
             InputProps={{
               readOnly: true, // El RUT no debería ser editable
               startAdornment: (<InputAdornment position="start"><AccountCircle /></InputAdornment>),
