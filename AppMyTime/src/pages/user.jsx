@@ -36,7 +36,7 @@ const RegistroForm = () => {
   const [confirmPasswordError, setConfirmPasswordError] = useState("");
   const [apiError, setApiError] = useState("");
 
-  const BACKEND_URL = 'http://localhost:3001';
+  const BACKEND_URL = 'http://localhost:4000';
 
   const handleSubmit = async (event) => {
     event.preventDefault();
