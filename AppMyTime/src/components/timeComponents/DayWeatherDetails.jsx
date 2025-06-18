@@ -8,6 +8,29 @@ import {
 import { useState, useEffect } from 'react';
 import { getWeatherIconUrl } from '../../services/weatherservice';
 
+// ✅ FUNCIÓN: devuelve lista de actividades compatibles con el clima
+function getRecomendacionesPorClima(weather) {
+  const sensacion = parseFloat(weather.feels_like); // nueva base térmica
+  const viento = weather.wind * 3.6; // m/s a km/h
+  const lluvia = weather.precipitation > 0;
+  const cond = weather.condition?.toLowerCase() || '';
+
+  const actividades = [
+    { nombre: 'Correr 🏃', valido: !lluvia && sensacion >= 10 && sensacion <= 25 && viento < 25 },
+    { nombre: 'Lectura al Aire Libre 📖', valido: !lluvia && cond.includes('despejado') && sensacion >= 15 },
+    { nombre: 'Yoga 🧘', valido: true },
+    { nombre: 'Caminar 🚶', valido: !lluvia && sensacion > 8 },
+    { nombre: 'Shopping 🛍️', valido: lluvia || viento > 30 || sensacion < 10 },
+    { nombre: 'Pescar 🎣', valido: !lluvia && viento < 25 },
+    { nombre: 'Ciclismo 🚴', valido: !lluvia && viento < 20 && sensacion >= 12 },
+    { nombre: 'Fútbol ⚽', valido: !lluvia && sensacion >= 15 },
+    { nombre: 'Fotografía 📸', valido: !lluvia && !cond.includes('niebla') },
+    { nombre: 'Natación 🏊', valido: sensacion > 22 && !lluvia },
+  ];
+
+  return actividades.filter(a => a.valido).map(a => a.nombre);
+}
+
 const DayWeatherDetails = ({ dayWeather }) => {
   const [selectedWeather, setSelectedWeather] = useState(dayWeather.weathers[0]);
   const theme = useTheme();
@@ -19,6 +42,8 @@ const DayWeatherDetails = ({ dayWeather }) => {
   const changeWeather = (dt) => {
     setSelectedWeather(dayWeather.weathers.find(weather => weather.dt === dt));
   }
+
+  const actividadesCompatibles = getRecomendacionesPorClima(selectedWeather);
 
   return (
     <Paper sx={{ 
@@ -114,7 +139,31 @@ const DayWeatherDetails = ({ dayWeather }) => {
         <DetailItem icon="🌡️" title="Sensación" value={`${parseInt(selectedWeather.feels_like)}°C`} />
       </Box>
 
-      {/* Recomendación */}
+      {/* 🔥 NUEVA SECCIÓN: Lista de actividades compatibles */}
+      <Box sx={{ 
+        p: 3,
+        bgcolor: '#f1f3f4',
+        borderTop: '1px solid #e0e0e0'
+      }}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
+          Actividades recomendadas para este bloque horario
+        </Typography>
+        {actividadesCompatibles.length > 0 ? (
+          <ul style={{ margin: 0, paddingLeft: '1.2em' }}>
+            {actividadesCompatibles.map((act, i) => (
+              <li key={i}>
+                <Typography variant="body2">{act}</Typography>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <Typography variant="body2">
+            No se recomienda realizar actividades al aire libre. Considera opciones bajo techo.
+          </Typography>
+        )}
+      </Box>
+
+      {/* Recomendación original del pronóstico */}
       <Box sx={{ 
         p: 2,
         bgcolor: '#f8f9fa',
