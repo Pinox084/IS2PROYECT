@@ -12,13 +12,13 @@ function esClimaCompatible(nombre, weather) {
   const nombreLower = nombre.toLowerCase();
 
   if (nombreLower.includes('correr') && !lluvia && sensacion >= 10 && sensacion <= 25 && viento < 25) return true;
-  if (nombreLower.includes('lectura') && !lluvia && cond.includes('despejado') && sensacion >= 15) return true;
+  if (nombreLower.includes('lectura') && !lluvia && cond.includes('despejado') && sensacion >= 10) return true;
   if (nombreLower.includes('yoga')) return true;
   if (nombreLower.includes('caminar') && !lluvia && sensacion > 8) return true;
   if (nombreLower.includes('shopping') && (lluvia || viento > 30 || sensacion < 10)) return true;
   if (nombreLower.includes('pescar') && !lluvia && viento < 25) return true;
   if (nombreLower.includes('ciclismo') && !lluvia && viento < 20 && sensacion >= 12) return true;
-  if (nombreLower.includes('fútbol') && !lluvia && sensacion >= 15) return true;
+  if (nombreLower.includes('futbol') && !lluvia && sensacion >= 10) return true;
   if (nombreLower.includes('foto') && !lluvia && !cond.includes('niebla')) return true;
   if (nombreLower.includes('natación') && sensacion > 22 && !lluvia) return true;
 
