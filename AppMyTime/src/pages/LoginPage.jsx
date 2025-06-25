@@ -16,7 +16,8 @@ export default function LoginPage() {
 
   const BACKEND_URL = 'http://localhost:4000';
 
-  const handleLogin = async () => {
+  const handleLogin = async (e) => {
+    if (e) e.preventDefault();
     setError(""); // Limpiar errores anteriores
 
     if (!email || !password) {
@@ -127,7 +128,7 @@ export default function LoginPage() {
             >
               INICIAR SESIÓN
             </Typography>
-            <Box component="form" noValidate autoComplete="off">
+            <Box component="form" noValidate autoComplete="off" onSubmit={handleLogin}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <LockIcon sx={{ color: "#1976d2" }} />
                 <TextField
@@ -157,6 +158,7 @@ export default function LoginPage() {
                 />
               </Box>
               <Button
+                type="submit"
                 variant="contained"
                 fullWidth
                 sx={{
