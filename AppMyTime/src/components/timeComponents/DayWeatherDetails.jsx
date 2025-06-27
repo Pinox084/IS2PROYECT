@@ -11,8 +11,8 @@ function esClimaCompatible(nombre, weather) {
   const cond = weather.condition?.toLowerCase() || '';
   const nombreLower = nombre.toLowerCase();
 
-  if (nombreLower.includes('correr') && !lluvia && sensacion >= 10 && sensacion <= 25 && viento < 25) return true;
-  if (nombreLower.includes('lectura') && !lluvia && cond.includes('despejado') && sensacion >= 10) return true;
+  if (nombreLower.includes('correr') && !lluvia && sensacion >= 6 && sensacion <= 25 && viento < 25) return true;
+  if (nombreLower.includes('lectura') && !lluvia && (cond.includes('despejado') || cond.includes('nublado')) && sensacion >= 10) return true;
   if (nombreLower.includes('yoga')) return true;
   if (nombreLower.includes('caminar') && !lluvia && sensacion > 8) return true;
   if (nombreLower.includes('shopping') && (lluvia || viento > 30 || sensacion < 10)) return true;
