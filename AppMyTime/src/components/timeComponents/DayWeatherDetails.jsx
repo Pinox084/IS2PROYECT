@@ -31,6 +31,8 @@ const DayWeatherDetails = ({ dayWeather }) => {
   const theme = useTheme();
   const { userData } = useContext(UserContext);
   const rut_usuario = userData?.rut;
+  const [loadingActividades, setLoadingActividades] = useState(false);
+
 
   useEffect(() => {
     setSelectedWeather(dayWeather.weathers[0]);
@@ -40,12 +42,14 @@ const DayWeatherDetails = ({ dayWeather }) => {
     console.log("🔎 RUT del usuario:", rut_usuario);
     if (!rut_usuario) return;
 
+    setLoadingActividades(true);
+
     getActividadesUsuario(rut_usuario)
       .then((res) => {
         console.log("📦 Respuesta del backend:", res);
-        const data = res.actividades || res; // Fallback en caso de respuesta directa
+        const data = res.actividades || res;
         const actividadesFormateadas = data.map((a) => ({
-          nombre: a.nombre, // ✅ así está viniendo desde el backend
+          nombre: a.nombre,
           dias: a.dia || []
         }));
         console.log("🎯 Actividades formateadas:", actividadesFormateadas);
@@ -54,6 +58,9 @@ const DayWeatherDetails = ({ dayWeather }) => {
       .catch((err) => {
         console.error("❌ Error al obtener actividades del usuario:", err);
         setActividadesUsuario([]);
+      })
+      .finally(() => {
+        setLoadingActividades(false);
       });
   }, [rut_usuario]);
 
@@ -154,7 +161,11 @@ const DayWeatherDetails = ({ dayWeather }) => {
         <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
           Actividad asignada para hoy
         </Typography>
-        {actividadDelDia ? (
+        {loadingActividades ? (
+          <Typography variant="body2" color="text.secondary">
+            Cargando actividades...
+          </Typography>
+        ) : actividadDelDia ? (
           <Typography variant="body1">
             {actividadDelDia.nombre} —{' '}
             {esClimaCompatible(actividadDelDia.nombre, selectedWeather)
@@ -162,15 +173,22 @@ const DayWeatherDetails = ({ dayWeather }) => {
               : '🚫 No se recomienda realizar por el clima actual'}
           </Typography>
         ) : (
-          <Typography variant="body1">No tienes actividades asignadas específicamente para este día.</Typography>
+          <Typography variant="body1">
+            No tienes actividades asignadas específicamente para este día.
+          </Typography>
         )}
       </Box>
+
 
       <Box sx={{ p: 3, bgcolor: '#f8f9fa', borderTop: '1px solid #e0e0e0' }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
           Otras actividades que podrías hacer hoy
         </Typography>
-        {actividadesAlternativas.length > 0 ? (
+        {loadingActividades ? (
+          <Typography variant="body2" color="text.secondary">
+            Cargando actividades...
+          </Typography>
+        ) : actividadesAlternativas.length > 0 ? (
           <ul style={{ margin: 0, paddingLeft: '1.2em' }}>
             {actividadesAlternativas.map((act, i) => (
               <li key={i}>
@@ -179,15 +197,25 @@ const DayWeatherDetails = ({ dayWeather }) => {
             ))}
           </ul>
         ) : (
-          <Typography variant="body2">No hay otras actividades compatibles con el clima actual.</Typography>
+          <Typography variant="body2">
+            No hay otras actividades compatibles con el clima actual.
+          </Typography>
         )}
       </Box>
 
+
       <Box sx={{ p: 2, bgcolor: '#ffffff', borderTop: '1px solid #e0e0e0' }}>
-        <Typography variant="body1" sx={{ fontWeight: 500 }}>
-          {selectedWeather.recommendation}
-        </Typography>
+        {loadingActividades ? (
+          <Typography variant="body2" color="text.secondary">
+            Cargando recomendación...
+          </Typography>
+        ) : (
+          <Typography variant="body1" sx={{ fontWeight: 500 }}>
+            {selectedWeather.recommendation}
+          </Typography>
+        )}
       </Box>
+
     </Paper>
   );
 };

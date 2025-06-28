@@ -11,6 +11,7 @@ import {
   Alert
 } from '@mui/material';
 import { getWeatherIconUrl } from '../../services/weatherservice';
+import { getEmojiActividad } from '../../utils/actividadesConEmoji';
 
 const HorizontalWeekCalendar = ({ onDaySelect, forecast, selectedCard, actividades = [], loadingActividades = false }) => {
   const theme = useTheme();
@@ -25,20 +26,6 @@ const HorizontalWeekCalendar = ({ onDaySelect, forecast, selectedCard, actividad
     'VIE': 'Viernes',
     'SÁB': 'Sábado',
     'DOM': 'Domingo'
-  };
-
-  const emojiActividad = (nombre) => {
-    const lower = nombre.toLowerCase();
-    if (lower.includes('futbol')) return '⚽';
-    if (lower.includes('yoga')) return '🧘';
-    if (lower.includes('correr') || lower.includes('running')) return '🏃‍♂️';
-    if (lower.includes('gimnasio') || lower.includes('gym')) return '🏋️';
-    if (lower.includes('ciclismo')) return '🚴';
-    if (lower.includes('natación') || lower.includes('piscina')) return '🏊';
-    if (lower.includes('caminar')) return '🚶';
-    if (lower.includes('lectura')) return '📖';
-    if (lower.includes('shopping')) return '🛍️';
-    return '🎯';
   };
 
   const getWeatherChipColor = (condition, hasRain) => {
@@ -212,7 +199,7 @@ const HorizontalWeekCalendar = ({ onDaySelect, forecast, selectedCard, actividad
                     mt: 2,
                     textAlign: 'center',
                     boxShadow: theme.shadows[1],
-                    height: 50, // altura controlada
+                    height: 50,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center'
@@ -234,12 +221,11 @@ const HorizontalWeekCalendar = ({ onDaySelect, forecast, selectedCard, actividad
                     >
                       {loadingActividades
                         ? 'Cargando...'
-                        :actividadDia 
-                        ? `${emojiActividad(actividadDia.nombre)} ${actividadDia.nombre}` 
+                        : actividadDia 
+                        ? `${getEmojiActividad(actividadDia.nombre)} ${actividadDia.nombre}`
                         : 'Sin actividad'}
                     </Typography>
                   </Box>
-
 
                   <Box sx={{ 
                     bgcolor: 'rgba(245, 245, 245, 0.7)',

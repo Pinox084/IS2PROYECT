@@ -58,7 +58,7 @@ const TimePage = () => {
       setLoadingActividades(true);
       try {
 
-        await new Promise(resolve => setTimeout(resolve, 1000)); //Simulación de espera
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulación de espera
         const data = await getActividadesUsuario(userData.rut);
         console.log("📦 Actividades recibidas del backend:", data); // 👈 Ver en consola
         setActividades(data);
@@ -153,7 +153,7 @@ const TimePage = () => {
               onDaySelect={handleDaySelect} 
               selectedCard={selectedDay?.dt_day}
               forecast={forecast}
-              actividades={actividades} // 👈 ¡Ahora se pasan!
+              actividades={actividades} 
               loadingActividades={loadingActividades} 
             />
           </Box>
