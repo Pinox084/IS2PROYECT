@@ -31,6 +31,7 @@ const DayWeatherDetails = ({ dayWeather }) => {
   const theme = useTheme();
   const { userData } = useContext(UserContext);
   const rut_usuario = userData?.rut;
+  const isGuest = userData?.isGuest;
   const [loadingActividades, setLoadingActividades] = useState(false);
 
 
@@ -156,7 +157,7 @@ const DayWeatherDetails = ({ dayWeather }) => {
         <DetailItem icon="☔" title="Precipitaciones" value={`${selectedWeather.precipitation.toFixed(1)} mm/h`} />
         <DetailItem icon="🌡️" title="Sensación" value={`${parseInt(selectedWeather.feels_like)}°C`} />
       </Box>
-
+    {!isGuest && (
       <Box sx={{ p: 3, bgcolor: '#f1f3f4', borderTop: '1px solid #e0e0e0' }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
           Actividad asignada para hoy
@@ -178,8 +179,8 @@ const DayWeatherDetails = ({ dayWeather }) => {
           </Typography>
         )}
       </Box>
-
-
+    )}
+    {!isGuest && (
       <Box sx={{ p: 3, bgcolor: '#f8f9fa', borderTop: '1px solid #e0e0e0' }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
           Otras actividades que podrías hacer hoy
@@ -202,7 +203,7 @@ const DayWeatherDetails = ({ dayWeather }) => {
           </Typography>
         )}
       </Box>
-
+    )}
 
       <Box sx={{ p: 2, bgcolor: '#ffffff', borderTop: '1px solid #e0e0e0' }}>
         {loadingActividades ? (

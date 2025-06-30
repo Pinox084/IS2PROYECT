@@ -12,12 +12,18 @@ import {
 } from '@mui/material';
 import { getWeatherIconUrl } from '../../services/weatherservice';
 import { getEmojiActividad } from '../../utils/actividadesConEmoji';
+import { useContext } from 'react';
+import { UserContext } from '../../context/UserContext';
+
+
 
 const HorizontalWeekCalendar = ({ onDaySelect, forecast, selectedCard, actividades = [], loadingActividades = false }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [error] = useState(null);
-
+  const { userData } = useContext(UserContext);
+  const isGuest = userData?.isGuest;
+  
   const diasCortosToLargos = {
     'LUN': 'Lunes',
     'MAR': 'Martes',
@@ -191,7 +197,7 @@ const HorizontalWeekCalendar = ({ onDaySelect, forecast, selectedCard, actividad
                       flexShrink: 0
                     }}
                   />
-
+                {!isGuest && (
                   <Box sx={{ 
                     bgcolor: actividadDia ? '#f9f9f9' : '#eeeeee',
                     borderRadius: 2,
@@ -226,7 +232,7 @@ const HorizontalWeekCalendar = ({ onDaySelect, forecast, selectedCard, actividad
                         : 'Sin actividad'}
                     </Typography>
                   </Box>
-
+                )}
                   <Box sx={{ 
                     bgcolor: 'rgba(245, 245, 245, 0.7)',
                     borderRadius: 2,
