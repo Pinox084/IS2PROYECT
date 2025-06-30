@@ -3,27 +3,9 @@ import { useState, useEffect, useContext } from 'react';
 import { getWeatherIconUrl } from '../../services/weatherservice';
 import { getActividadesUsuario } from '../../services/actividadService';
 import { UserContext } from '../../context/UserContext';
+import { esClimaCompatible, generarMensajeActividadClima } from '../../utils/mensajesActividadClima';
+import { getEmojiActividad } from '../../utils/actividadesConEmoji';
 
-function esClimaCompatible(nombre, weather) {
-  const sensacion = parseFloat(weather.feels_like);
-  const viento = weather.wind * 3.6;
-  const lluvia = weather.precipitation > 0;
-  const cond = weather.condition?.toLowerCase() || '';
-  const nombreLower = nombre.toLowerCase();
-
-  if (nombreLower.includes('correr') && !lluvia && sensacion >= 6 && sensacion <= 25 && viento < 25) return true;
-  if (nombreLower.includes('lectura') && !lluvia && (cond.includes('despejado') || cond.includes('nublado')) && sensacion >= 10) return true;
-  if (nombreLower.includes('yoga')) return true;
-  if (nombreLower.includes('caminar') && !lluvia && sensacion > 8) return true;
-  if (nombreLower.includes('shopping') && (lluvia || viento > 30 || sensacion < 10)) return true;
-  if (nombreLower.includes('pescar') && !lluvia && viento < 25) return true;
-  if (nombreLower.includes('ciclismo') && !lluvia && viento < 20 && sensacion >= 12) return true;
-  if (nombreLower.includes('futbol') && !lluvia && sensacion >= 10) return true;
-  if (nombreLower.includes('foto') && !lluvia && !cond.includes('niebla')) return true;
-  if (nombreLower.includes('natación') && sensacion > 22 && !lluvia) return true;
-
-  return false;
-}
 
 const DayWeatherDetails = ({ dayWeather }) => {
   const [selectedWeather, setSelectedWeather] = useState(dayWeather.weathers[0]);
@@ -168,10 +150,7 @@ const DayWeatherDetails = ({ dayWeather }) => {
           </Typography>
         ) : actividadDelDia ? (
           <Typography variant="body1">
-            {actividadDelDia.nombre} —{' '}
-            {esClimaCompatible(actividadDelDia.nombre, selectedWeather)
-              ? '✅ Se puede realizar'
-              : '🚫 No se recomienda realizar por el clima actual'}
+            {generarMensajeActividadClima(actividadDelDia.nombre, selectedWeather)}
           </Typography>
         ) : (
           <Typography variant="body1">
@@ -183,20 +162,34 @@ const DayWeatherDetails = ({ dayWeather }) => {
     {!isGuest && (
       <Box sx={{ p: 3, bgcolor: '#f8f9fa', borderTop: '1px solid #e0e0e0' }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-          Otras actividades que podrías hacer hoy
+          Otras actividades que podrías hacer en este horario
         </Typography>
         {loadingActividades ? (
           <Typography variant="body2" color="text.secondary">
             Cargando actividades...
           </Typography>
         ) : actividadesAlternativas.length > 0 ? (
-          <ul style={{ margin: 0, paddingLeft: '1.2em' }}>
+          <Box sx={{ display: 'flex', overflowX: 'auto', gap: 1, py: 1 }}>
             {actividadesAlternativas.map((act, i) => (
-              <li key={i}>
-                <Typography variant="body2">{act.nombre}</Typography>
-              </li>
+              <Box
+                key={i}
+                sx={{
+                  px: 2,
+                  py: 1,
+                  bgcolor: '#ffffff',
+                  borderRadius: 2,
+                  border: '1px solid #ccc',
+                  whiteSpace: 'nowrap',
+                  boxShadow: 1,
+                  fontSize: '0.85rem',
+                  fontWeight: 500,
+                  flexShrink: 0,
+                }}
+              >
+                {getEmojiActividad(act.nombre)} {act.nombre}
+              </Box>
             ))}
-          </ul>
+          </Box>
         ) : (
           <Typography variant="body2">
             No hay otras actividades compatibles con el clima actual.
@@ -204,6 +197,7 @@ const DayWeatherDetails = ({ dayWeather }) => {
         )}
       </Box>
     )}
+
 
       <Box sx={{ p: 2, bgcolor: '#ffffff', borderTop: '1px solid #e0e0e0' }}>
         {loadingActividades ? (
