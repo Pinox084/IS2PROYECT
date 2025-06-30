@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { 
   Typography, 
-  Button, 
   Card, 
   CardContent, 
   Box,
@@ -9,18 +8,32 @@ import {
   Divider,
   useTheme,
   useMediaQuery,
-  CircularProgress,
-  Alert,
-  IconButton
+  Alert
 } from '@mui/material';
-import { getWeeklyForecast, getWeatherIconUrl } from '../../services/weatherservice';
+import { getWeatherIconUrl } from '../../services/weatherservice';
+import { getEmojiActividad } from '../../utils/actividadesConEmoji';
+import { useContext } from 'react';
+import { UserContext } from '../../context/UserContext';
 
-const HorizontalWeekCalendar = ({ onDaySelect, forecast, selectedCard }) => {
+
+
+const HorizontalWeekCalendar = ({ onDaySelect, forecast, selectedCard, actividades = [], loadingActividades = false }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const [error, setError] = useState(null);
+  const [error] = useState(null);
+  const { userData } = useContext(UserContext);
+  const isGuest = userData?.isGuest;
+  
+  const diasCortosToLargos = {
+    'LUN': 'Lunes',
+    'MAR': 'Martes',
+    'MIÉ': 'Miércoles',
+    'JUE': 'Jueves',
+    'VIE': 'Viernes',
+    'SÁB': 'Sábado',
+    'DOM': 'Domingo'
+  };
 
-  // Color del chip según clima
   const getWeatherChipColor = (condition, hasRain) => {
     if (!condition) return { bg: '#E8F5E9', text: '#2E7D32' };
     const cond = condition.toLowerCase();
@@ -34,7 +47,7 @@ const HorizontalWeekCalendar = ({ onDaySelect, forecast, selectedCard }) => {
     if (cond.includes('viento')) return { bg: '#E0F7FA', text: '#00838F' };
     return { bg: '#E8F5E9', text: '#2E7D32' };
   };
-  
+
   if (error) return (
     <Alert severity="error" sx={{ m: 2 }}>
       {error}
@@ -52,16 +65,16 @@ const HorizontalWeekCalendar = ({ onDaySelect, forecast, selectedCard }) => {
         mb: 4,
         background: 'white',
       }}>
-      <Typography variant="h4" sx={{ 
-        color: '#2c5a8a', 
-        fontSize: '2rem',
-        fontWeight: 'bold',
-      }}>
-        {forecast?.location ? 
-          `🌤️ PRONÓSTICO - ${forecast.location.city.toUpperCase()}, ${forecast.location.country}` : 
-          '🌤️ PRONÓSTICO'
-        }
-      </Typography>
+        <Typography variant="h4" sx={{ 
+          color: '#2c5a8a', 
+          fontSize: '2rem',
+          fontWeight: 'bold',
+        }}>
+          {forecast?.location ? 
+            `🌤️ PRONÓSTICO - ${forecast.location.city.toUpperCase()}, ${forecast.location.country}` : 
+            '🌤️ PRONÓSTICO'
+          }
+        </Typography>
       </Box>
 
       <Box sx={{ 
@@ -71,32 +84,35 @@ const HorizontalWeekCalendar = ({ onDaySelect, forecast, selectedCard }) => {
         gap: 2,
         pb: 4,
       }}>
-
         <Box sx={{ display: 'flex', gap: 3 }}>
           {Object.keys(forecast.forecastData).sort((a, b) => {
             const [da, ma, ya] = a.split('/').map(Number);
             const [db, mb, yb] = b.split('/').map(Number);
-            const dateA = new Date(ya, ma - 1, da);
-            const dateB = new Date(yb, mb - 1, db);
-            return dateA - dateB;
+            return new Date(ya, ma - 1, da) - new Date(yb, mb - 1, db);
           }).map((dateDay) => {
-            // Usa la lectura actual para el dia actual, si no usa el forecast
-            const day = dateDay === forecast.currentWeather.dt_day ? forecast.currentWeather : forecast.forecastData[dateDay];
+            const day = dateDay === forecast.currentWeather.dt_day
+              ? forecast.currentWeather
+              : forecast.forecastData[dateDay];
             const hasRain = day.condition === 'Lluvia';
             const recommendation = day.recommendation;
             const chipColors = getWeatherChipColor(day.condition, hasRain);
-            
+
+            const nombreDiaLargo = diasCortosToLargos[day.day_txt] || '';
+            const actividadDia = actividades.find(a => a.dia.includes(nombreDiaLargo));
+
             return (
               <Card 
                 key={dateDay}
                 sx={{ 
                   width: isMobile ? 160 : 200,
-                  height: 490,
+                  height: 540,
                   display: 'flex',
                   flexDirection: 'column',
                   transition: 'all 0.3s ease',
                   borderRadius: 3,
-                  background: selectedCard === dateDay ? 'linear-gradient(to bottom, #ffffff 0%,rgb(135, 192, 241) 100%)' : 'linear-gradient(to bottom, #ffffff 0%, #f9f9f9 100%)',
+                  background: selectedCard === dateDay 
+                    ? 'linear-gradient(to bottom, #ffffff 0%,rgb(135, 192, 241) 100%)' 
+                    : 'linear-gradient(to bottom, #ffffff 0%, #f9f9f9 100%)',
                   '&:hover': { 
                     transform: 'translateY(-8px)', 
                     boxShadow: theme.shadows[8],
@@ -105,7 +121,7 @@ const HorizontalWeekCalendar = ({ onDaySelect, forecast, selectedCard }) => {
                   },
                   transform: selectedCard === dateDay ? 'translateY(-8px)' : 'none'
                 }}
-                onClick={() => {onDaySelect?.(forecast.forecastData[dateDay])}}
+                onClick={() => { onDaySelect?.(forecast.forecastData[dateDay]) }}
               >
                 <CardContent sx={{ 
                   flex: 1,
@@ -116,7 +132,7 @@ const HorizontalWeekCalendar = ({ onDaySelect, forecast, selectedCard }) => {
                   <Box sx={{ textAlign: 'center', mb: 1 }}>
                     <Typography variant="h6" sx={{ 
                       fontWeight: 'bold', 
-                      color: dateDay === forecast.currentWeather.dt_txt ? theme.palette.primary.main : theme.palette.primary.dark,
+                      color: theme.palette.primary.dark,
                       fontSize: '1.2rem',
                     }}>
                       {day.day_txt || '--'}
@@ -138,7 +154,7 @@ const HorizontalWeekCalendar = ({ onDaySelect, forecast, selectedCard }) => {
                   }}>
                     <img 
                       src={getWeatherIconUrl(day.icon, dateDay === forecast.currentWeather.dt_day)} 
-                      alt={'TODO'} 
+                      alt="icono" 
                       style={{ width: 80, height: 80 }}
                       onError={(e) => {
                         e.target.src = getWeatherIconUrl('01d', day?.isToday);
@@ -163,7 +179,7 @@ const HorizontalWeekCalendar = ({ onDaySelect, forecast, selectedCard }) => {
                     mb: 2,
                     flexShrink: 0
                   }}>
-                    {'Min: ' + forecast.forecastData[dateDay].temp_min + '°/ Max: ' + forecast.forecastData[dateDay].temp_max  + '°' || '--'}
+                    {'Min: ' + day.temp_min + '°/ Max: ' + day.temp_max  + '°' || '--'}
                   </Typography>
 
                   <Chip
@@ -181,12 +197,47 @@ const HorizontalWeekCalendar = ({ onDaySelect, forecast, selectedCard }) => {
                       flexShrink: 0
                     }}
                   />
-
+                {!isGuest && (
+                  <Box sx={{ 
+                    bgcolor: actividadDia ? '#f9f9f9' : '#eeeeee',
+                    borderRadius: 2,
+                    p: 1.5,
+                    mt: 2,
+                    textAlign: 'center',
+                    boxShadow: theme.shadows[1],
+                    height: 50,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        fontWeight: 500, 
+                        fontSize: '0.9rem', 
+                        color: actividadDia ? '#333' : '#999',
+                        lineHeight: 1.2,
+                        maxWidth: '100%',
+                        overflowWrap: 'break-word',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden'
+                      }}
+                    >
+                      {loadingActividades
+                        ? 'Cargando...'
+                        : actividadDia 
+                        ? `${getEmojiActividad(actividadDia.nombre)} ${actividadDia.nombre}`
+                        : 'Sin actividad'}
+                    </Typography>
+                  </Box>
+                )}
                   <Box sx={{ 
                     bgcolor: 'rgba(245, 245, 245, 0.7)',
                     borderRadius: 2,
                     p: 1.5,
-                    mb: 2,
+                    mt: 2,
                     textAlign: 'center',
                     minHeight: 80,
                     display: 'flex',
