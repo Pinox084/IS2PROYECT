@@ -104,6 +104,7 @@ async function obtenerActividadesUsuario(rut_usuario) {
 }
 
 // Modificar el día de una actividad asociada a un usuario
+//CHECAR PORQUE NO FUNCIONA EL QUE QUITAR UN DIA DE LA ACTIVIDAD FUNCIONE 
 async function modifDiaActividadUsuario(rut_usuario, id_actividad, nuevoDia) {
   try {
     
@@ -166,6 +167,10 @@ async function modifDiaActividadUsuario(rut_usuario, id_actividad, nuevoDia) {
     throw error;
   }
 }
+async function obtenerClimas() {
+
+  return await prisma.Clima.findMany();
+}
 
 module.exports = {
   obtenerActividades,
@@ -175,5 +180,6 @@ module.exports = {
   asociarActividadUsuario,
   eliminarActividadUsuario,
   obtenerActividadesUsuario,
-  modifDiaActividadUsuario
+  modifDiaActividadUsuario,
+  obtenerClimas
 };

@@ -15,7 +15,8 @@ const {
   asociarActividadUsuario,
   eliminarActividadUsuario,
   obtenerActividadesUsuario,
-  modifDiaActividadUsuario
+  modifDiaActividadUsuario,
+  obtenerClimas
 } = require('./controlActividades.js');
 
 dotenv.config();
@@ -220,6 +221,16 @@ app.put('/api/usuario/dia', async (req, res) => {
   } catch (err) {
     console.error('❌ Error en modificar-dia:', err);
     res.status(500).json({ error: 'Error en servidor', detalles: err.message });
+  }
+});
+
+// --- OBTENER CLIMAS ---
+app.get('/api/clima', async (req, res) => {
+  try {
+    const climas = await obtenerClimas();
+    res.json(climas);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener climas', detalles: error.message });
   }
 });
 
