@@ -4,6 +4,7 @@
   },
   "dependencies": {
     "@fdograph/rut-utilities": "^1.4.0",
-    "@prisma/client": "^6.8.2"
+    "@prisma/client": "^6.8.2",
+    "axios": "^1.10.0"
   }
 }
