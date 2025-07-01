@@ -39,7 +39,7 @@ model Actividad {
 
 model Perfil_Actividad {
   id_perfil           Int                        @id @default(autoincrement())
-  rut_usuario         String
+  rut_usuario         String?
   id_actividad        Int
   temp_min            Float
   temp_max            Float
@@ -51,7 +51,7 @@ model Perfil_Actividad {
   alertas             Alerta[]
   recomendaciones     Recomendacion[]
   actividad           Actividad                  @relation(fields: [id_actividad], references: [id_actividad])
-  usuario             Usuario                    @relation(fields: [rut_usuario], references: [rut])
+  usuario             Usuario?                   @relation(fields: [rut_usuario], references: [rut])
   relaciones          Relacion_PerfilCondicion[]
   climas              Clima[]
 }
