@@ -13,6 +13,7 @@ export const UserProvider = ({ children }) => {
           email: "",
           phone: "",
           location: "",
+          rut:"",
         };
   });
 

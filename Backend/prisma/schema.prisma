@@ -31,10 +31,10 @@ model Ubicacion {
 model Actividad {
   id_actividad Int                 @id @default(autoincrement())
   nombre       String              @db.VarChar(100)
-  perfiles     Perfil_Actividad[]
-  usuarios     Usuario_Actividad[]
   categoria_id Int
   categoria    Categoria           @relation(fields: [categoria_id], references: [id_categoria])
+  perfiles     Perfil_Actividad[]
+  usuarios     Usuario_Actividad[]
 }
 
 model Perfil_Actividad {

@@ -8,3 +8,4 @@ weather.get('/', async (req, res) => {
 });
 
 module.exports = weather;
+
