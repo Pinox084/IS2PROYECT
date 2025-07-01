@@ -10,7 +10,7 @@ import {
   Checkbox,
 } from '@mui/material';
 
-const campos = ["Temperatura Minima", "Temperatura Máxima", "Viento Maximo", "Visibilidad"];
+const campos = ["Temperatura Minima (°C)", "Temperatura Máxima (°C)", "Viento Maximo (Km/h)", "Visibilidad", "Maxima Humedad", "Maximas Precipitaciones (mm/h)"];
 const climas = ["Despejado", "Nublado", "Lluvia", "Niebla"];
 
 const PerfilActividades = () => {
