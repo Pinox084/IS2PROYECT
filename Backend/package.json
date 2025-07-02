@@ -20,5 +20,8 @@
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
     "prisma": "^6.8.2"
+  },
+  "devDependencies": {
+    "twilio": "^5.7.1"
   }
 }

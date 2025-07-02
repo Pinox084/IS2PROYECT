@@ -31,25 +31,29 @@ model Ubicacion {
 model Actividad {
   id_actividad Int                 @id @default(autoincrement())
   nombre       String              @db.VarChar(100)
+  categoria_id Int
+  Categoria    Categoria           @relation(fields: [categoria_id], references: [id_categoria])
   perfiles     Perfil_Actividad[]
   usuarios     Usuario_Actividad[]
 }
 
 model Perfil_Actividad {
   id_perfil           Int                        @id @default(autoincrement())
-  rut_usuario         String
+  rut_usuario         String?
   id_actividad        Int
   temp_min            Float
   temp_max            Float
   viento_max          Float
-  rayo_uv_max         Float
-  lluvia              Boolean
+  sense_min           Float
+  sense_max           Float
+  visibilidad         Float
   max_precipitaciones Float
   alertas             Alerta[]
   actividad           Actividad                  @relation(fields: [id_actividad], references: [id_actividad])
-  usuario             Usuario                    @relation(fields: [rut_usuario], references: [rut])
+  usuario             Usuario?                   @relation(fields: [rut_usuario], references: [rut])
   recomendaciones     Recomendacion[]
   relaciones          Relacion_PerfilCondicion[]
+  Clima               Clima[]
 }
 
 model Condiciones_Climaticas {
@@ -121,4 +125,16 @@ model Usuario_Ubicacion {
   id_ubi      Int
   ubicacion   Ubicacion @relation(fields: [id_ubi], references: [id_ubi])
   usuario     Usuario   @relation(fields: [rut_usuario], references: [rut])
+}
+
+model Categoria {
+  id_categoria   Int         @id @default(autoincrement())
+  name_categoria String
+  Actividad      Actividad[]
+}
+
+model Clima {
+  id_clim          Int                @id @default(autoincrement())
+  nombre_clima     String
+  Perfil_Actividad Perfil_Actividad[]
 }
