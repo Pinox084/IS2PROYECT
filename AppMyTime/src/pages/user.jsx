@@ -13,6 +13,7 @@ import {
 import { AccountCircle, Email, Lock, LockOutlined, Phone, LocationOn } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { validateRut } from '@fdograph/rut-utilities';
+import { sendSms } from "../services/twilioService";
 
 
 const RegistroForm = () => {
@@ -32,6 +33,7 @@ const RegistroForm = () => {
   const [nombresError, setNombresError] = useState("");
   const [apellidosError, setApellidosError] = useState("");
   const [emailError, setEmailError] = useState("");
+  const [telefonoError, setTelefonoError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [confirmPasswordError, setConfirmPasswordError] = useState("");
   const [apiError, setApiError] = useState("");
@@ -49,6 +51,7 @@ const RegistroForm = () => {
     setApellidosError("");
     setEmailError("");
     setPasswordError("");
+    setTelefonoError("");
     setConfirmPasswordError("");
 
     // Validaciones frontend
@@ -62,10 +65,12 @@ const RegistroForm = () => {
     else if (!/^[a-zA-Z0-9\s]+$/.test(apellidos)) { setApellidosError("Ingrese un apellido sin caracteres especiales."); isValid = false }
     if (!email) { setEmailError("El email es obligatorio."); isValid = false; }
     else if (!/\S+@\S+\.\S+/.test(email)) { setEmailError("Ingresa un email válido."); isValid = false; }
-
     if (!password) { setPasswordError("La contraseña es obligatoria."); isValid = false; }
     else if (password.length < 6) { setPasswordError("La contraseña debe tener al menos 6 caracteres."); isValid = false; }
-
+    if (!telefono) { setTelefonoError("El número de teléfono es necesario"); isValid = false; }
+    else if (telefono.length < 9){ setTelefonoError("El formáto del número telefónico debe ser 9XXXXXXXX"); isValid = false; }
+    else if (telefono.length > 9){ setTelefonoError("El formáto del número telefónico debe ser 9XXXXXXXX"); isValid = false; }
+    else if (!telefono.startsWith('9')) { setTelefonoError("El formáto del número telefónico debe ser 9XXXXXXXX"); isValid = false; }
     if (password !== confirmPassword) {
       setConfirmPasswordError("Las contraseñas no coinciden.");
       isValid = false;
@@ -92,6 +97,13 @@ const RegistroForm = () => {
         const data = await response.json();
 
         if (response.ok) {
+          if (telefono) {
+            let limpio = telefono.replace(/\D/g, '');
+            const smsResponse = await sendSms(`+56${limpio}`, `¡Hola ${nombres}! Bienvenido a AppMyTime.`);
+            if (!smsResponse.success) {
+              console.warn("No se pudo enviar el SMS:", smsResponse.error);
+            }
+          }
           alert("Usuario registrado correctamente");
           setUserData({
             ...data.user,
@@ -99,6 +111,7 @@ const RegistroForm = () => {
           });
           localStorage.setItem('userToken', data.token);
           localStorage.setItem('userData', JSON.stringify(data.user));
+
           navigate("/time");
         } else {
           setApiError(data.error || 'Error desconocido al registrar.');
@@ -193,6 +206,8 @@ const RegistroForm = () => {
             variant="filled"
             fullWidth
             value={telefono}
+            error={!!telefonoError}
+            helperText={telefonoError}
             onChange={(e) => setTelefono(e.target.value)}
             placeholder="912345678"
             InputProps={{ startAdornment: (<InputAdornment position="start"><Phone /></InputAdornment>), }}

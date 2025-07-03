@@ -17,6 +17,8 @@ const {
   obtenerActividadesUsuario,
   modifDiaActividadUsuario
 } = require('./controlActividades.js');
+// twilio será utlizado pera el envío de sms, tiene créditos limitados
+const twilioRouter = require('./twilioRouter');
 
 dotenv.config();
 const app = express();
@@ -25,6 +27,7 @@ app.use(express.static('dist'));
 app.use(express.json());
 app.use(logger);
 app.use('/api/weather', weatherRouter);
+app.use('/twilio', twilioRouter); //ruta de twilio
 const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecreto';
 
