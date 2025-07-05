@@ -9,7 +9,7 @@ export function esClimaCompatible(nombre, weather) {
   if (nombreLower.includes('lectura al aire') && !lluvia && (cond.includes('despejado') || cond.includes('nublado')) && sensacion >= 10) return true;
   if (nombreLower.includes('yoga') || nombreLower.includes('meditación') || nombreLower.includes('trabajo') || nombreLower.includes('clases') || nombreLower.includes('estudio') || nombreLower.includes('descanso') || nombreLower.includes('limpieza') || nombreLower.includes('lectura en casa') || nombreLower.includes('pelicula')) return true;
   if (nombreLower.includes('caminar') && !lluvia && sensacion > 8) return true;
-  if (nombreLower.includes('shopping') && (lluvia || viento > 30 || sensacion < 10)) return true;
+  if (nombreLower.includes('shopping') && (viento < 30 || sensacion < 25)) return true;
   if (nombreLower.includes('pescar') && !lluvia && viento < 25) return true;
   if (nombreLower.includes('ciclismo') && !lluvia && viento < 20 && sensacion >= 12) return true;
   if (nombreLower.includes('futbol') && !lluvia && sensacion >= 10) return true;
@@ -35,7 +35,7 @@ export function generarMensajeActividadClima(nombreActividad, weather) {
     if (nombreLower.includes('correr')) return '❌ Evita correr hoy, el clima no es favorable (lluvia, frío o mucho viento).';
     if (nombreLower.includes('lectura al aire')) return '📚 No se recomienda leer al aire libre con este clima.';
     if (nombreLower.includes('caminar')) return '🚫 Hoy no es ideal para caminar, podría estar lluvioso o incómodo.';
-    if (nombreLower.includes('shopping')) return '🏬 No es necesario salir hoy, espera un clima más extremo para aprovechar shopping.';
+    if (nombreLower.includes('shopping')) return '🏬 No es necesario salir hoy, el clima es demasiado extremo.';
     if (nombreLower.includes('pescar')) return '🎣 Las condiciones no son seguras para pescar.';
     if (nombreLower.includes('ciclismo')) return '🚳 Evita salir en bicicleta, el clima puede ser riesgoso.';
     if (nombreLower.includes('futbol')) return '⚠️ El clima no permite jugar fútbol cómodamente.';

@@ -5,6 +5,8 @@ import { getActividadesUsuario } from '../../services/actividadService';
 import { UserContext } from '../../context/UserContext';
 import { esClimaCompatible, generarMensajeActividadClima } from '../../utils/mensajesActividadClima';
 import { getEmojiActividad } from '../../utils/actividadesConEmoji';
+import ReportProblemIcon from '@mui/icons-material/ReportProblem';
+import { generarRecomendacionExtendida } from '../../utils/recomendacionesClima';
 
 
 const DayWeatherDetails = ({ dayWeather }) => {
@@ -15,6 +17,7 @@ const DayWeatherDetails = ({ dayWeather }) => {
   const rut_usuario = userData?.rut;
   const isGuest = userData?.isGuest;
   const [loadingActividades, setLoadingActividades] = useState(false);
+  const tieneTemperaturaExtrema = (temp) => temp < 5 || temp > 15;
 
 
   useEffect(() => {
@@ -79,6 +82,27 @@ const DayWeatherDetails = ({ dayWeather }) => {
       esClimaCompatible(a.nombre, selectedWeather)
   );
 
+  const getTooltipStylesByTemperatura = (temp) => {
+    const tempInt = parseInt(temp);
+    return tempInt < 5
+      ? {
+        bgcolor: '#e3f2fd',         // azul claro
+        color: '#0d47a1',           // texto azul oscuro
+        border: '1px solid #90caf9'
+      }
+      : {
+        bgcolor: '#fff3e0',         // naranjo claro
+        color: '#5d4037',           // texto café
+        border: '1px solid #ffb74d'
+      };
+  };
+
+  const getEmojiPorTemperaturaExtrema = (temp) => {
+    const t = parseInt(temp);
+    return t < 5 ? '🧊' : '🔥';
+  };
+
+
 
   return (
     <Paper sx={{ background: 'white', borderRadius: 3, overflow: 'hidden', boxShadow: theme.shadows[2] }}>
@@ -110,7 +134,7 @@ const DayWeatherDetails = ({ dayWeather }) => {
             <Box
               key={weather.dt}
               sx={{
-                minWidth: 60,
+                minWidth: 50,
                 textAlign: 'center',
                 p: 1,
                 borderRadius: 2,
@@ -139,64 +163,103 @@ const DayWeatherDetails = ({ dayWeather }) => {
         <DetailItem icon="☔" title="Precipitaciones" value={`${selectedWeather.precipitation.toFixed(1)} mm/h`} />
         <DetailItem icon="🌡️" title="Sensación" value={`${parseInt(selectedWeather.feels_like)}°C`} />
       </Box>
-    {!isGuest && (
-      <Box sx={{ p: 3, bgcolor: '#f1f3f4', borderTop: '1px solid #e0e0e0' }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-          Actividad asignada para hoy
-        </Typography>
-        {loadingActividades ? (
-          <Typography variant="body2" color="text.secondary">
-            Cargando actividades...
-          </Typography>
-        ) : actividadDelDia ? (
-          <Typography variant="body1">
-            {generarMensajeActividadClima(actividadDelDia.nombre, selectedWeather)}
-          </Typography>
-        ) : (
-          <Typography variant="body1">
-            No tienes actividades asignadas específicamente para este día.
-          </Typography>
-        )}
-      </Box>
-    )}
-    {!isGuest && (
-      <Box sx={{ p: 3, bgcolor: '#f8f9fa', borderTop: '1px solid #e0e0e0' }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-          Otras actividades que podrías hacer en este horario
-        </Typography>
-        {loadingActividades ? (
-          <Typography variant="body2" color="text.secondary">
-            Cargando actividades...
-          </Typography>
-        ) : actividadesAlternativas.length > 0 ? (
-          <Box sx={{ display: 'flex', overflowX: 'auto', gap: 1, py: 1 }}>
-            {actividadesAlternativas.map((act, i) => (
-              <Box
-                key={i}
-                sx={{
-                  px: 2,
-                  py: 1,
-                  bgcolor: '#ffffff',
-                  borderRadius: 2,
-                  border: '1px solid #ccc',
-                  whiteSpace: 'nowrap',
-                  boxShadow: 1,
-                  fontSize: '0.85rem',
-                  fontWeight: 500,
-                  flexShrink: 0,
-                }}
-              >
-                {getEmojiActividad(act.nombre)} {act.nombre}
-              </Box>
-            ))}
+      {tieneTemperaturaExtrema(selectedWeather.temp) && (
+        <Box
+          sx={{
+            p: 3,
+            bgcolor: selectedWeather.temp < 5 ? '#e3f2fd' : '#fff3e0',
+            borderTop: '1px solid #e0e0e0',
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <ReportProblemIcon
+              sx={{
+                color: selectedWeather.temp < 5 ? '#1565c0' : '#f57c00',
+                fontSize: 20,
+              }}
+            />
+            <Typography
+              variant="body2"
+              sx={{
+                fontWeight: 600,
+                color: selectedWeather.temp < 5 ? '#0d47a1' : '#5d4037',
+              }}
+            >
+              {selectedWeather.temp < 5 ? '🧊' : '🔥'} ¡Precaución! temperatura extrema
+            </Typography>
           </Box>
-        ) : (
-          <Typography variant="body2">
-            No hay otras actividades compatibles con el clima actual.
+        </Box>
+      )}
+
+      {!isGuest && (
+        <Box sx={{ p: 3, bgcolor: '#f1f3f4', borderTop: '1px solid #e0e0e0' }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
+            Actividad asignada para hoy
           </Typography>
-        )}
-      </Box>
-    )}
+          {loadingActividades ? (
+            <Typography variant="body2" color="text.secondary">
+              Cargando actividades...
+            </Typography>
+          ) : actividadDelDia ? (
+            <Typography variant="body1">
+              {generarMensajeActividadClima(actividadDelDia.nombre, selectedWeather)}
+            </Typography>
+          ) : (
+            <Typography variant="body1">
+              No tienes actividades asignadas específicamente para este día.
+            </Typography>
+          )}
+        </Box>
+      )}
+      {!isGuest && (
+        <Box sx={{ p: 3, bgcolor: '#f8f9fa', borderTop: '1px solid #e0e0e0' }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
+            Otras actividades que podrías hacer en este horario
+          </Typography>
+          {loadingActividades ? (
+            <Typography variant="body2" color="text.secondary">
+              Cargando actividades...
+            </Typography>
+          ) : actividadesAlternativas.length > 0 ? (
+            <Box
+              sx={{
+                display: 'flex',
+                overflowX: 'auto',
+                gap: 1,
+                py: 1,
+                maxWidth: '100%',
+                scrollbarWidth: 'thin',
+                '&::-webkit-scrollbar': { height: 6 },
+                '&::-webkit-scrollbar-thumb': { bgcolor: '#ccc', borderRadius: 2 }
+              }}
+            >
+              {actividadesAlternativas.map((act, i) => (
+                <Box
+                  key={i}
+                  sx={{
+                    px: 2,
+                    py: 1,
+                    bgcolor: '#ffffff',
+                    borderRadius: 2,
+                    border: '1px solid #ccc',
+                    whiteSpace: 'nowrap',
+                    boxShadow: 1,
+                    fontSize: '0.85rem',
+                    fontWeight: 500,
+                    flexShrink: 0,
+                  }}
+                >
+                  {getEmojiActividad(act.nombre)} {act.nombre}
+                </Box>
+              ))}
+            </Box>
+          ) : (
+            <Typography variant="body2">
+              No hay otras actividades compatibles con el clima actual.
+            </Typography>
+          )}
+        </Box>
+      )}
 
 
       <Box sx={{ p: 2, bgcolor: '#ffffff', borderTop: '1px solid #e0e0e0' }}>
@@ -205,11 +268,14 @@ const DayWeatherDetails = ({ dayWeather }) => {
             Cargando recomendación...
           </Typography>
         ) : (
-          <Typography variant="body1" sx={{ fontWeight: 500 }}>
-            {selectedWeather.recommendation}
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography variant="body1" sx={{ fontWeight: 500 }}>
+              {generarRecomendacionExtendida(selectedWeather)}
+            </Typography>
+          </Box>
         )}
       </Box>
+
 
     </Paper>
   );
