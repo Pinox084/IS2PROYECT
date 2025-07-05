@@ -46,7 +46,7 @@ const PerfilActividades = () => {
         console.error('Error al obtener perfiles:', error);
       }
     };
-
+    console.log("📌 RUT que se envía:", rutUsuario);
     if (rutUsuario) obtenerPerfiles();
   }, [rutUsuario]);
 

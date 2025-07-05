@@ -247,6 +247,7 @@ app.get('/api/perfiles', async (req, res) => {
     const perfiles = await obtenerPerfilesUsuario(rut_usuario);
     res.json(perfiles);
   } catch (error) {
+     console.error("❌ ERROR DETECTADO EN BACKEND:", error);
     res.status(500).json({ error: 'Error al obtener perfiles', detalles: error.message });
   }
 });

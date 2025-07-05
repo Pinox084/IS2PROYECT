@@ -1,82 +1,84 @@
-export function esClimaCompatible(nombre, weather) {
-  const sensacion = parseFloat(weather.feels_like);
-  const viento = weather.wind * 3.6;
-  const lluvia = weather.precipitation > 0;
-  const cond = weather.condition?.toLowerCase() || '';
-  const nombreLower = nombre.toLowerCase();
-
-  if (nombreLower.includes('correr') && !lluvia && sensacion >= 6 && sensacion <= 25 && viento < 25) return true;
-  if (nombreLower.includes('lectura al aire') && !lluvia && (cond.includes('despejado') || cond.includes('nublado')) && sensacion >= 10) return true;
-  if (nombreLower.includes('yoga') || nombreLower.includes('meditación') || nombreLower.includes('trabajo') || nombreLower.includes('clases') || nombreLower.includes('estudio') || nombreLower.includes('descanso') || nombreLower.includes('limpieza') || nombreLower.includes('lectura en casa') || nombreLower.includes('pelicula')) return true;
-  if (nombreLower.includes('caminar') && !lluvia && sensacion > 8) return true;
-  if (nombreLower.includes('shopping') && (viento < 30 || sensacion < 25)) return true;
-  if (nombreLower.includes('pescar') && !lluvia && viento < 25) return true;
-  if (nombreLower.includes('ciclismo') && !lluvia && viento < 20 && sensacion >= 12) return true;
-  if (nombreLower.includes('futbol') && !lluvia && sensacion >= 10) return true;
-  if (nombreLower.includes('foto') || nombreLower.includes('fotografía')) {
-    if (!lluvia && !cond.includes('niebla')) return true;
-  }
-  if (nombreLower.includes('natación') && sensacion > 22 && !lluvia) return true;
-  if (nombreLower.includes('surf') && sensacion > 20 && !cond.includes('tormenta')) return true;
-  if (nombreLower.includes('senderismo') && !lluvia && viento < 20 && sensacion > 10) return true;
-  if (nombreLower.includes('jardinería') && !lluvia && !cond.includes('nieve')) return true;
-  if (nombreLower.includes('picnic') && !lluvia && sensacion > 15) return true;
-  if (nombreLower.includes('dibujo') && !lluvia && !cond.includes('niebla')) return true;
-  if (nombreLower.includes('cine')) return true;
-
-  return false;
+function capitalizar(str) {
+  if (!str) return '';
+  return str[0].toUpperCase() + str.slice(1);
 }
 
-export function generarMensajeActividadClima(nombreActividad, weather) {
-  const compatible = esClimaCompatible(nombreActividad, weather);
-  const nombreLower = nombreActividad.toLowerCase();
+export function esClimaCompatibleConPerfil(perfil, weather) {
+  const temp = parseFloat(weather.temp);
+  const viento = weather.wind * 3.6;
+  const humedad = weather.humidity;
+  const precipitacion = weather.precipitation;
+  const cond = weather.condition?.toLowerCase() || '';
+  const condicionesPermitidas = perfil.climas?.map(c => c.nombre_clima?.toLowerCase()) || [];
+
+  const tempOk = (!perfil.temp_min || temp >= perfil.temp_min) && (!perfil.temp_max || temp <= perfil.temp_max);
+  const vientoOk = (!perfil.viento_max || viento <= perfil.viento_max);
+  const humedadOk = (!perfil.sense_max || humedad <= perfil.sense_max);
+  const precipitacionOk = (!perfil.max_precipitaciones || precipitacion <= perfil.max_precipitaciones);
+  const condicionOk = condicionesPermitidas.includes(cond);
+
+  return tempOk && vientoOk && humedadOk && precipitacionOk && condicionOk;
+}
+
+export function explicarIncompatibilidadPerfil(perfil, weather, nombreActividad = 'esta actividad') {
+  const temp = parseFloat(weather.temp);
+  const viento = weather.wind * 3.6;
+  const humedad = weather.humidity;
+  const precipitacion = weather.precipitation;
+  const cond = weather.condition?.toLowerCase() || '';
+  const condicionesPermitidas = perfil.climas?.map(c => c.nombre_clima?.toLowerCase()) || [];
+
+  const nombre = capitalizar(nombreActividad);
+  const problemas = [];
+
+  if (perfil.temp_min && temp < perfil.temp_min) problemas.push(`la temperatura está más baja de lo ideal (${temp}°C)`);
+  if (perfil.temp_max && temp > perfil.temp_max) problemas.push(`hace más calor de lo recomendable (${temp}°C)`);
+  if (perfil.viento_max && viento > perfil.viento_max) problemas.push(`hay mucho viento (${viento.toFixed(0)} km/h)`);
+  if (perfil.sense_max && humedad > perfil.sense_max) problemas.push(`la humedad es alta (${humedad}%)`);
+  if (perfil.max_precipitaciones && precipitacion > perfil.max_precipitaciones) problemas.push(`hay demasiada lluvia (${precipitacion.toFixed(1)} mm/h)`);
+  if (condicionesPermitidas.length > 0 && !condicionesPermitidas.includes(cond)) problemas.push(`el clima actual (${weather.condition}) no es adecuado`);
+
+  if (problemas.length === 0) return null;
+  if (problemas.length === 1) return `⚠️ No es el mejor momento para ${nombre.toLowerCase()}: ${problemas[0]}.`;
+  if (problemas.length === 2) return `⚠️ No se recomienda realizar ${nombre.toLowerCase()} en estas condiciones: ${problemas[0]} y ${problemas[1]}.`;
+
+  const problemaEjemplo = problemas[Math.floor(Math.random() * problemas.length)];
+  return `⚠️ Las condiciones no son favorables para ${nombre.toLowerCase()}. Por ejemplo, ${problemaEjemplo}, entre otros factores climáticos.`;
+}
+
+export function generarMensajeActividadClima(nombreActividad, weather, perfil) {
+  const compatible = esClimaCompatibleConPerfil(perfil, weather);
+  const nombre = nombreActividad.toLowerCase();
+  const nombreCapitalizado = capitalizar(nombreActividad);
 
   if (!compatible) {
-    if (nombreLower.includes('correr')) return '❌ Evita correr hoy, el clima no es favorable (lluvia, frío o mucho viento).';
-    if (nombreLower.includes('lectura al aire')) return '📚 No se recomienda leer al aire libre con este clima.';
-    if (nombreLower.includes('caminar')) return '🚫 Hoy no es ideal para caminar, podría estar lluvioso o incómodo.';
-    if (nombreLower.includes('shopping')) return '🏬 No es necesario salir hoy, el clima es demasiado extremo.';
-    if (nombreLower.includes('pescar')) return '🎣 Las condiciones no son seguras para pescar.';
-    if (nombreLower.includes('ciclismo')) return '🚳 Evita salir en bicicleta, el clima puede ser riesgoso.';
-    if (nombreLower.includes('futbol')) return '⚠️ El clima no permite jugar fútbol cómodamente.';
-    if (nombreLower.includes('foto') || nombreLower.includes('fotografía')) return '📵 Hoy no es buen día para fotografías al aire libre.';
-    if (nombreLower.includes('natación')) return '💧 No se recomienda nadar hoy debido al clima frío o lluvioso.';
-    if (nombreLower.includes('surf')) return '🌊 Mejor evita el surf hoy, podría haber condiciones peligrosas.';
-    if (nombreLower.includes('senderismo')) return '🥾 No se recomienda hacer senderismo con este clima.';
-    if (nombreLower.includes('jardinería')) return '🌧️ Jardinería no es conveniente hoy por el clima.';
-    if (nombreLower.includes('picnic')) return '🧺 Mejor posponer el picnic para otro día con mejor tiempo.';
-    if (nombreLower.includes('dibujo')) return '🎨 El clima no es propicio para dibujar al aire libre.';
-
-    // Para actividades de interior no compatibles, aunque es raro, damos genérico
-    return `⚠️ Hoy no se recomienda realizar "${nombreActividad}" debido a las condiciones climáticas.`;
+    return explicarIncompatibilidadPerfil(perfil, weather, nombreCapitalizado);
   }
 
-  // Mensajes positivos
-  if (nombreLower.includes('correr')) return '🏃‍♂️ Ideal para salir a correr. ¡Aprovecha el buen clima!';
-  if (nombreLower.includes('lectura al aire')) return '📖 Buen clima para una lectura al aire libre. ¡Lleva tu libro favorito!';
-  if (nombreLower.includes('yoga')) return '🧘 Un día perfecto para practicar yoga y relajarte.';
-  if (nombreLower.includes('caminar')) return '🚶 Buen clima para salir a caminar. ¡Disfruta del paseo!';
-  if (nombreLower.includes('shopping')) return '🛍️ Perfecto para hacer compras sin preocuparse por el clima.';
-  if (nombreLower.includes('pescar')) return '🎣 Condiciones aptas para una buena jornada de pesca.';
-  if (nombreLower.includes('ciclismo')) return '🚴 ¡Buen momento para pedalear!';
-  if (nombreLower.includes('futbol')) return '⚽ Puedes jugar fútbol en este horario sin problemas.';
-  if (nombreLower.includes('foto') || nombreLower.includes('fotografía')) return '📸 ¡Buena luz para tomar fotografías!';
-  if (nombreLower.includes('natación')) return '🏊‍♂️ Día caluroso, ideal para nadar.';
-  if (nombreLower.includes('surf')) return '🏄 Buenas condiciones para surfear.';
-  if (nombreLower.includes('senderismo')) return '🥾 Disfruta una caminata en la naturaleza.';
-  if (nombreLower.includes('jardinería')) return '🌱 Puedes cuidar tu jardín con tranquilidad.';
-  if (nombreLower.includes('picnic')) return '🧺 ¡Ideal para un picnic al aire libre!';
-  if (nombreLower.includes('meditación')) return '🧘 Respira profundo. Buen día para meditar.';
-  if (nombreLower.includes('dibujo')) return '🎨 Perfecto para inspirarte y dibujar al aire libre.';
-  if (nombreLower.includes('cine')) return '🎬 Buen día para ver una película en el cine.';
-  if (nombreLower.includes('estudio')) return '📚 Condiciones ideales para concentrarte en tus estudios.';
-  if (nombreLower.includes('trabajo')) return '💻 Trabaja desde casa sin interrupciones climáticas.';
-  if (nombreLower.includes('descanso')) return '🛌 Día tranquilo para descansar.';
-  if (nombreLower.includes('limpieza')) return '🧹 Puedes aprovechar de limpiar la casa.';
-  if (nombreLower.includes('lectura en casa')) return '📘 Tarde perfecta para leer en casa.';
-  if (nombreLower.includes('pelicula')) return '📺 Ideal para una película en casa.';
-  if (nombreLower.includes('clases')) return '📖 El clima no interfiere con tus clases. ¡A estudiar!';
+  if (nombre.includes('correr')) return '🏃‍♂️ Buen momento para salir a correr y activar el cuerpo.';
+  if (nombre.includes('lectura al aire')) return '📖 El clima acompaña para disfrutar una lectura tranquila al aire libre.';
+  if (nombre.includes('yoga')) return '🧘 Clima ideal para una sesión relajante de yoga.';
+  if (nombre.includes('caminar')) return '🚶 Perfecto para una caminata al aire libre sin contratiempos.';
+  if (nombre.includes('shopping')) return '🛍️ Puedes salir a hacer compras sin preocuparte por el clima.';
+  if (nombre.includes('pescar')) return '🎣 Condiciones agradables para una buena jornada de pesca.';
+  if (nombre.includes('ciclismo')) return '🚴 Excelente momento para salir en bicicleta.';
+  if (nombre.includes('futbol')) return '⚽ Buenas condiciones para jugar un partido de fútbol.';
+  if (nombre.includes('fotograf')) return '📸 Buena luz y clima para sacar fotos espectaculares.';
+  if (nombre.includes('nataci')) return '🏊 Hace calor, ideal para nadar y refrescarte.';
+  if (nombre.includes('surf')) return '🏄 Buenas condiciones para surfear y disfrutar el mar.';
+  if (nombre.includes('senderismo')) return '🥾 Perfecto para salir de excursión y disfrutar la naturaleza.';
+  if (nombre.includes('jardiner')) return '🌱 Clima propicio para cuidar tus plantas en el jardín.';
+  if (nombre.includes('picnic')) return '🧺 Ideal para un picnic tranquilo al aire libre.';
+  if (nombre.includes('meditaci')) return '🧘 Buen momento para meditar y reconectar contigo mismo.';
+  if (nombre.includes('dibujo')) return '🎨 Clima agradable para dibujar al aire libre con inspiración.';
+  if (nombre.includes('cine')) return '🎬 Buen momento para ir al cine y relajarte un rato.';
+  if (nombre.includes('estudio')) return '📚 El ambiente está tranquilo para concentrarte en estudiar.';
+  if (nombre.includes('trabajo')) return '💻 Puedes trabajar desde casa con tranquilidad.';
+  if (nombre.includes('descanso')) return '🛌 Las condiciones son ideales para descansar un poco.';
+  if (nombre.includes('limpieza')) return '🧼 Buen momento para hacer limpieza sin interrupciones.';
+  if (nombre.includes('lectura en casa')) return '📘 Ideal para leer en casa con calma.';
+  if (nombre.includes('pelicula')) return '📺 Perfecto para ver una película en casa y relajarte.';
+  if (nombre.includes('clases')) return '📖 Buen clima para concentrarte en tus clases o tareas.';
 
-  return `✅ Puedes realizar "${nombreActividad}" con tranquilidad.`;
+  return `✅ Todo está bien para que disfrutes de ${nombreCapitalizado}.`;
 }
-

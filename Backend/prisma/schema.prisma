@@ -49,11 +49,11 @@ model Perfil_Actividad {
   visibilidad         Float
   max_precipitaciones Float
   alertas             Alerta[]
-  recomendaciones     Recomendacion[]
   actividad           Actividad                  @relation(fields: [id_actividad], references: [id_actividad])
   usuario             Usuario?                   @relation(fields: [rut_usuario], references: [rut])
+  recomendaciones     Recomendacion[]
   relaciones          Relacion_PerfilCondicion[]
-  climas              Clima[]
+  climas              Clima[]                    @relation("ClimaToPerfil_Actividad")
 }
 
 model Condiciones_Climaticas {
@@ -128,13 +128,13 @@ model Usuario_Ubicacion {
 }
 
 model Categoria {
-  id_categoria   Int    @id @default(autoincrement())
+  id_categoria   Int         @id @default(autoincrement())
   name_categoria String
   actividades    Actividad[]
 }
 
 model Clima {
-  id_clim      Int    @id @default(autoincrement())
+  id_clim      Int                @id @default(autoincrement())
   nombre_clima String
-  perfiles     Perfil_Actividad[]
+  perfiles     Perfil_Actividad[] @relation("ClimaToPerfil_Actividad")
 }
