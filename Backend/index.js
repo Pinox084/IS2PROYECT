@@ -16,7 +16,10 @@ const {
   eliminarActividadUsuario,
   obtenerActividadesUsuario,
   modifDiaActividadUsuario,
-  obtenerClimas
+  obtenerClimas,
+  obtenerPerfilesUsuario,
+  eliminarPerfilUsuario,
+  editarPerfilUsuario
 } = require('./controlActividades.js');
 
 dotenv.config();
@@ -234,6 +237,51 @@ app.get('/api/clima', async (req, res) => {
   }
 });
 
+app.get('/api/perfiles', async (req, res) => {
+  const { rut_usuario } = req.query;
+  if (!rut_usuario) {
+    return res.status(400).json({ error: 'rut_usuario es requerido' });
+  }
+
+  try {
+    const perfiles = await obtenerPerfilesUsuario(rut_usuario);
+    res.json(perfiles);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener perfiles', detalles: error.message });
+  }
+});
+
+app.delete('/api/perfiles', async (req, res) => {
+  const { rut_usuario, id_actividad, id_perfil } = req.body;
+  if (!rut_usuario || !id_actividad || !id_perfil) {
+    return res.status(400).json({ error: 'Faltan datos obligatorios' });
+  }
+  try {
+    await eliminarPerfilUsuario(rut_usuario, id_actividad, id_perfil);
+    res.status(204).send();
+  } catch (error) {
+    res.status(500).json({
+      error: 'Error al eliminar perfil',
+      detalles: error.message
+    });
+  }
+});
+
+app.put('/api/perfiles', async (req, res) => {
+  const { rut_usuario, id_actividad,id_perfil, ...perfilData } = req.body;
+
+  if (!rut_usuario || !id_actividad) {
+    return res.status(400).json({ error: 'Faltan campos requeridos' });
+  }
+
+  try {
+    await editarPerfilUsuario(rut_usuario, id_actividad, perfilData);
+    res.status(200).json({ mensaje: 'Perfil actualizado exitosamente' });
+  } catch (error) {
+    console.error('Error al actualizar perfil:', error);
+    res.status(500).json({ error: 'Error del servidor al actualizar perfil' });
+  }
+});
 // --- INICIAR SERVIDOR ---
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {

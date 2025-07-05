@@ -1,219 +1,225 @@
 import { useState, useEffect } from 'react';
 import { useUser } from '../context/UserContext';
 import axios from 'axios';
-
 import {
   Typography,
   List,
   ListItem,
   Box,
   Checkbox,
+  ListItemButton,
+  TextField,
+  Button,
+  Alert,
+  Snackbar
 } from '@mui/material';
 
-const campos = ["Temperatura Minima (°C)", "Temperatura Máxima (°C)", "Viento Maximo (Km/h)", "Visibilidad", "Maxima Humedad", "Maximas Precipitaciones (mm/h)"];
-const climas = ["Despejado", "Nublado", "Lluvia", "Niebla"];
+const climas_disponibles = ["Despejado", "Nublado", "Lluvia", "Niebla"];
+
+const camposDef = [
+  { label: "Temperatura Minima (°C)", key: "temp_min" },
+  { label: "Temperatura Máxima (°C)", key: "temp_max" },
+  { label: "Viento Maximo (Km/h)", key: "viento_max" },
+  { label: "Visibilidad", key: "visibilidad" },
+  { label: "Maxima Humedad", key: "sense_max" },
+  { label: "Maximas Precipitaciones (mm/h)", key: "max_precipitaciones" }
+];
 
 const PerfilActividades = () => {
   const { userData } = useUser();
   const rutUsuario = userData?.rut;
-  const [actividades, setActividades] = useState([]);
+  const [perfiles, setPerfiles] = useState([]);
+  const [perfilSeleccionado, setPerfilSeleccionado] = useState(null);
+  const [modoEdicion, setModoEdicion] = useState(false);
+  const [datosEditados, setDatosEditados] = useState({});
+  const [climasSeleccionados, setClimasSeleccionados] = useState([]);
+  const [alerta, setAlerta] = useState({ open: false, mensaje: '', tipo: 'success' });
 
   useEffect(() => {
-    const obtenerDatos = async () => {
+    const obtenerPerfiles = async () => {
       try {
-        const res = await axios.get('http://localhost:4000/api/usuario_actividad', {
+        const res = await axios.get('http://localhost:4000/api/perfiles', {
           params: { rut_usuario: rutUsuario }
         });
-        console.log("Actividades recibidas:", res.data);
-        const actividadesOrdenadas = res.data.slice().sort((a, b) => a.nombre.localeCompare(b.nombre));
-        setActividades(actividadesOrdenadas);
-
+        setPerfiles(res.data);
       } catch (error) {
-        console.error('Error al obtener datos:', error);
+        console.error('Error al obtener perfiles:', error);
       }
     };
 
-    if (rutUsuario) {
-      obtenerDatos();
-    }
+    if (rutUsuario) obtenerPerfiles();
   }, [rutUsuario]);
 
-  return (
-    <Box
-      sx={{
-        display: 'flex',
-        flexDirection: { xs: 'column', md: 'row' },
-        justifyContent: 'center',
-        alignItems: 'flex-start',
-        gap: 4,
-        mt: 4,
-        width: '100%',
-        maxWidth: 1300,
-        margin: '40px auto',
-      }}
-    >
-      {/* Actividades Box */}
-      <Box
-        sx={{
-          flex: 1,
-          backgroundColor: '#f5f7fb',
-          borderRadius: 4,
-          padding: 4,
-          minWidth: 320,
-          maxWidth: 500,
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
-          border: '1px solid #e0e0e0',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-        }}
-      >
-        <Typography
-          variant="h5"
-          gutterBottom
-          sx={{ color: '#223c6a', fontWeight: 700, textAlign: 'center' }}
-        >
-          Mis Actividades
-        </Typography>
+  const handleModificarClick = () => {
+    const { id_perfil, actividad, recomendaciones, alertas, ...editableFields } = perfilSeleccionado;
+    setDatosEditados(editableFields);
+    setClimasSeleccionados(perfilSeleccionado.climas?.map(c => c.nombre_clima) || []);
+    setModoEdicion(true);
+  };
+  
+  const mostrarAlerta = (mensaje, tipo = 'success') => {
+  setAlerta({ open: true, mensaje, tipo });
+  };
 
-        {actividades.length === 0 ? (
-          <Typography
-            variant="body1"
-            sx={{ color: '#777', textAlign: 'center', marginTop: 2 }}
-          >
-            No tienes actividades guardadas.
-          </Typography>
-        ) : (
-          <Box
-            sx={{
-              maxHeight: 7 * 56,
-              overflowY: actividades.length > 7 ? 'auto' : 'visible',
-              overflowX: 'hidden',
-              width: '100%',
-              backgroundColor: '#f5f7fb',
-              borderRadius: 2,
-              '&::-webkit-scrollbar': {
-                width: '8px',
-                background: '#f5f7fb',
-              },
-              '&::-webkit-scrollbar-thumb': {
-                background: '#f5f7fb',
-                borderRadius: 8,
-              },
-              scrollbarColor: '#f5f7fb #f5f7fb',
-              scrollbarWidth: 'thin',
-            }}
-          >
-            <List>
-              {actividades.slice(0, 7).map((actividad) => (
-                <ListItem
-                  key={actividad.id || actividad.nombre}
-                  sx={{
-                    backgroundColor: '#fff',
-                    borderRadius: 2,
-                    marginBottom: 1,
-                    padding: 2,
-                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
-                    transition: '0.3s',
-                    '&:hover': {
-                      backgroundColor: '#e0f0ff',
-                      transform: 'scale(1.01)',
-                    },
-                  }}
-                >
-                  <Typography
-                    variant="body1"
-                    sx={{ fontWeight: 600, color: '#10487f' }}
-                  >
-                    {actividad.nombre}
-                  </Typography>
-                </ListItem>
+
+  const handleGuardar = async () => {
+    if (!rutUsuario || !perfilSeleccionado?.id_actividad) {
+      console.error("Faltan datos para guardar");
+      return;
+    }
+
+    try {
+      const payload = {
+        ...datosEditados,
+        rut_usuario: rutUsuario,
+        id_actividad: perfilSeleccionado.id_actividad,
+        climas: climasSeleccionados
+      };
+
+      await axios.put('http://localhost:4000/api/perfiles', payload);
+
+      const res = await axios.get('http://localhost:4000/api/perfiles', {
+        params: { rut_usuario: rutUsuario }
+      });
+      setPerfiles(res.data);
+      setPerfilSeleccionado(res.data.find(p => p.id_actividad === perfilSeleccionado.id_actividad));
+      setModoEdicion(false);
+      mostrarAlerta('Perfil guardado correctamente', 'success');
+    } catch (error) {
+      console.error('Error al guardar perfil:', error);
+      mostrarAlerta('Error al guardar el perfil', 'error');
+    }
+  };
+
+  const handleEliminar = async () => {
+    try {
+      await axios.delete('http://localhost:4000/api/perfiles', {
+        data: {
+          rut_usuario: rutUsuario,
+          id_actividad: perfilSeleccionado.id_actividad,
+          id_perfil: perfilSeleccionado.id_perfil
+        }
+      });
+
+      const res = await axios.get('http://localhost:4000/api/perfiles', {
+        params: { rut_usuario: rutUsuario }
+      });
+
+      const nuevo = res.data.find(p => p.id_actividad === perfilSeleccionado.id_actividad);
+      setPerfiles(res.data);
+      setPerfilSeleccionado(nuevo);
+      setModoEdicion(false);
+      mostrarAlerta('Perfil Eliminado', 'success');
+    } catch (error) {
+      console.error('Error al eliminar el perfil:', error);
+      mostrarAlerta('Error al eliminar el perfil', 'error');
+    }
+  };
+
+  const toggleClima = (clima) => {
+    setClimasSeleccionados(prev =>
+      prev.includes(clima) ? prev.filter(c => c !== clima) : [...prev, clima]
+    );
+  };
+
+  return (
+    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, justifyContent: 'center', gap: 4, mt: 4, maxWidth: 1300, margin: '40px auto' }}>
+      <Box sx={{ flex: 1, backgroundColor: '#223c6a', borderRadius: 4, padding: 4 }}>
+        <Typography variant="h5" sx={{ textAlign: 'center', color: '#fff' }}>Mis Actividades</Typography>
+        <List>
+          {perfiles.map((perfil) => (
+            <ListItem key={perfil.id_perfil} disablePadding>
+              <ListItemButton onClick={() => { setPerfilSeleccionado(perfil); setModoEdicion(false); }}>
+                <Typography sx={{ color: '#fff' }}>{perfil.actividad?.nombre}</Typography>
+              </ListItemButton>
+            </ListItem>
+          ))}
+        </List>
+      </Box>
+
+      <Box sx={{ flex: 2, backgroundColor: '#f5f7fb', borderRadius: 4, padding: 4 }}>
+        {perfilSeleccionado ? (
+          <>
+            <Typography variant="h6" sx={{ color: '#575757' }}>
+              Parámetros de: {perfilSeleccionado.actividad?.nombre}
+            </Typography>
+
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 3 }}>
+              {camposDef.map(({ label, key }) => (
+                <Box key={key} sx={{ flex: '1 1 150px', backgroundColor: '#fff', p: 2, borderRadius: 2 }}>
+                  <Typography sx={{ color: '#575757' }}>{label}</Typography>
+                  {modoEdicion ? (
+                    <TextField
+                      type="number"
+                      value={datosEditados[key] ?? ''}
+                      onChange={e =>
+                        setDatosEditados({ ...datosEditados, [key]: parseFloat(e.target.value) })
+                      }
+                      fullWidth
+                    />
+                  ) : (
+                    <Typography sx={{ color: '#575757' }}>{perfilSeleccionado[key]}</Typography>
+                  )}
+                </Box>
               ))}
-            </List>
-          </Box>
+            </Box>
+
+            <Box sx={{ display: 'flex', justifyContent: 'center', gap: 4, flexWrap: 'wrap' }}>
+              {climas_disponibles.map((clima) => {
+                const checked = modoEdicion
+                  ? climasSeleccionados.includes(clima)
+                  : (perfilSeleccionado.climas || []).some(c => c.nombre_clima === clima);
+
+                return (
+                  <Box key={clima} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <Typography sx={{ color: '#575757' }}>{clima}</Typography>
+                    {modoEdicion ? (
+                      <Checkbox
+                        checked={checked}
+                        onChange={() => toggleClima(clima)}
+                        sx={{ transform: 'scale(1.4)', color: '#10487f' }}
+                      />
+                    ) : (
+                      <Checkbox checked={checked} disabled />
+                    )}
+                  </Box>
+                );
+              })}
+            </Box>
+
+            <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 4 }}>
+              {modoEdicion ? (
+                <>
+                <Button variant="contained" onClick={handleGuardar}>Guardar</Button>
+                <Button variant= "outlined" onClick={() => {
+                  setModoEdicion(false);
+                  setDatosEditados({});
+                  setClimasSeleccionados(perfilSeleccionado.climas?.map(c => c.nombre_clima) || []);
+                }}>Cancelar</Button>
+                </> 
+              ) : (
+                <Button variant="contained" onClick={handleModificarClick}>Modificar Perfil</Button>
+              )}
+              <Button variant="outlined" color="error" onClick={handleEliminar}>Eliminar Perfil</Button>
+            </Box>
+          </>
+        ) : (
+          <Typography textAlign="center">Selecciona una actividad para ver su perfil</Typography>
         )}
       </Box>
-
-      {/* Climas y Campos Box */}
-      <Box
-        sx={{
-          flex: 2,
-          backgroundColor: '#f5f7fb',
-          borderRadius: 4,
-          padding: 4,
-          minWidth: 320,
-          maxWidth: 1200,
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
-          border: '1px solid #e0e0e0',
-        }}
+      <Snackbar 
+        open={alerta.open}
+        autoHideDuration={4000}
+      onClose={() => setAlerta({ ...alerta, open: false })}
+      anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        {/* Campos numéricos */}
-        <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-          {campos.map((nombre, idx) => (
-            <Box
-              key={nombre}
-              sx={{
-                flex: 1,
-                backgroundColor: '#fff',
-                borderRadius: 2,
-                p: 2,
-                boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-              }}
-            >
-              <Typography
-                variant="body2"
-                sx={{ mb: 1, color: '#223c6a', fontWeight: 600 }}
-              >
-                {nombre}
-              </Typography>
-              <input
-                type="number"
-                style={{
-                  width: '80px',
-                  padding: '8px',
-                  borderRadius: '6px',
-                  border: '1px solid #ccc',
-                  fontSize: '16px',
-                }}
-              />
-            </Box>
-          ))}
-        </Box>
-
-        {/* Checkboxes de Climas */}
-        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 4 }}>
-          {climas.map((clima, idx) => (
-            <Box
-              key={clima + idx}
-              sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-              }}
-            >
-              <Typography
-                variant="body2"
-                sx={{ color: '#223c6a', fontWeight: 600, mb: 1 }}
-              >
-                {clima}
-              </Typography>
-              <Checkbox
-                sx={{
-                  transform: 'scale(1.4)',
-                  color: '#10487f',
-                  '&.Mui-checked': {
-                    color: '#1976d2',
-                  },
-                }}
-              />
-            </Box>
-          ))}
-        </Box>
-      </Box>
+      <Alert onClose={() => setAlerta({ ...alerta, open: false })} severity={alerta.tipo} sx={{ width: '100%' }}>
+        {alerta.mensaje}
+      </Alert>
+      </Snackbar>
+    
     </Box>
+     
   );
 };
 
