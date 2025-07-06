@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { 
   Typography, 
-  Button, 
   Card, 
   CardContent, 
   Box,
@@ -9,89 +8,32 @@ import {
   Divider,
   useTheme,
   useMediaQuery,
-  CircularProgress,
   Alert
 } from '@mui/material';
-import { getWeeklyForecast, getWeatherIconUrl } from '../../services/weatherservice';
+import { getWeatherIconUrl } from '../../services/weatherservice';
+import { getEmojiActividad } from '../../utils/actividadesConEmoji';
+import { useContext } from 'react';
+import { UserContext } from '../../context/UserContext';
 
-const HorizontalWeekCalendar = ({ onDaySelect }) => {
+
+
+const HorizontalWeekCalendar = ({ onDaySelect, forecast, selectedCard, actividades = [], loadingActividades = false }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const [forecast, setForecast] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error] = useState(null);
+  const { userData } = useContext(UserContext);
+  const isGuest = userData?.isGuest;
+  
+  const diasCortosToLargos = {
+    'LUN': 'Lunes',
+    'MAR': 'Martes',
+    'MIÉ': 'Miércoles',
+    'JUE': 'Jueves',
+    'VIE': 'Viernes',
+    'SÁB': 'Sábado',
+    'DOM': 'Domingo'
+  };
 
-  // Función de recomendaciones con emojis
-  const getWeatherRecommendation = (condition, hasRain, tempAvg) => {
-  const conditionLower = condition?.toLowerCase() || '';
-  tempAvg = tempAvg ? parseInt(tempAvg) : null;
-
-  // Recomendaciones basadas en lluvia/tormenta
-  if (hasRain) {
-    if (conditionLower.includes('tormenta')) {
-      return '⚡Evita áreas abiertas y busca refugio';
-    }
-    if (conditionLower.includes('lluvia intensa')) {
-      return '🌧️Usa impermeable y botas de agua';
-    }
-    if (tempAvg < 10) {
-      return '❄️Abrigo impermeable';
-    }
-    return '☔Lleva paraguas';
-  }
-
-  // Recomendaciones basadas en nieve/hielo
-  if (conditionLower.includes('nieve') || conditionLower.includes('nevadas')) {
-    if (tempAvg < -5) {
-      return '🧊Ropa térmica completa y calzado antideslizante';
-    }
-    return '⛄Abrigo grueso, guantes y gorro térmico';
-  }
-
-  // Recomendaciones basadas en temperatura
-  if (tempAvg !== null) {
-    if (tempAvg > 25) {
-      if (conditionLower.includes('despejado')) {
-        return '🔥Protector solar FPS 50+';
-      }
-      return '🥵Ropa ligera e hidrátate';
-    }
-    if (tempAvg > 15) {
-      return '☀️Gafas y protector solar';
-    }
-    if (tempAvg <4) {
-      return '🧤Abrigo y bufanda';
-    }
-    if (tempAvg < 8) {
-      return '🧣Chaqueta gruesa';
-    }
-  }
-
-  // Recomendaciones basadas en condiciones específicas
-  if (conditionLower.includes('despejado') || conditionLower.includes('cielo despejado')) {
-    return '😎Gafas y protector solar';
-  }
-
-  if (conditionLower.includes('viento')) {
-    return '🍃Chaqueta cortavientos';
-  }
-
-  if (conditionLower.includes('niebla') || conditionLower.includes('neblina')) {
-    return '🌫️Conduce con precaución';
-  }
-
-  if (conditionLower.includes('nublado') || conditionLower.includes('nubes')) {
-    if (tempAvg > 15) {
-      return '⛅Capa ligera';
-    }
-    return '☁️Lleva una chaqueta';
-  }
-
-  // Recomendación por defecto
-  return '✨Disfruta de las condiciones';
-};
-
-  // Color del chip según clima
   const getWeatherChipColor = (condition, hasRain) => {
     if (!condition) return { bg: '#E8F5E9', text: '#2E7D32' };
     const cond = condition.toLowerCase();
@@ -106,26 +48,6 @@ const HorizontalWeekCalendar = ({ onDaySelect }) => {
     return { bg: '#E8F5E9', text: '#2E7D32' };
   };
 
-  useEffect(() => {
-    const loadWeather = async () => {
-      try {
-        const data = await getWeeklyForecast();
-        setForecast(data);
-      } catch (err) {
-        setError(err.message || 'Error al cargar el pronóstico');
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadWeather();
-  }, []);
-
-  if (loading) return (
-    <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-      <CircularProgress size={60} />
-    </Box>
-  );
-  
   if (error) return (
     <Alert severity="error" sx={{ m: 2 }}>
       {error}
@@ -133,7 +55,7 @@ const HorizontalWeekCalendar = ({ onDaySelect }) => {
   );
 
   return (
-    <Box sx={{ p: 4, overflowX: 'auto', mt: -2 }}>
+    <Box sx={{ p: 4, overflowX: 'flex', mt: -2 }}>
       <Box sx={{ 
         backgroundColor: 'rgba(255,255,255,0.9)', 
         borderRadius: 4, 
@@ -148,169 +70,196 @@ const HorizontalWeekCalendar = ({ onDaySelect }) => {
           fontSize: '2rem',
           fontWeight: 'bold',
         }}>
-          🌤️ PRONÓSTICO - CONCEPCIÓN, CHILE
+          {forecast?.location ? 
+            `🌤️ PRONÓSTICO - ${forecast.location.city.toUpperCase()}, ${forecast.location.country}` : 
+            '🌤️ PRONÓSTICO'
+          }
         </Typography>
       </Box>
 
       <Box sx={{ 
         display: 'flex',
+        alignItems: 'center',
         justifyContent: 'center',
-        gap: 3,
+        gap: 2,
         pb: 4,
       }}>
-        {forecast.map((day, index) => {
-          const recommendation = getWeatherRecommendation(day?.weather?.condition, day?.weather?.hasRain, day?.weather?.temp);
-          const chipColors = getWeatherChipColor(day?.weather?.condition, day?.weather?.hasRain);
-          
-          return (
-            <Card 
-              key={index}
-              sx={{ 
-                width: isMobile ? 160 : 200,
-                height: 490,
-                display: 'flex',
-                flexDirection: 'column',
-                transition: 'all 0.3s ease',
-                borderRadius: 3,
-                background: 'linear-gradient(to bottom, #ffffff 0%, #f9f9f9 100%)',
-                '&:hover': { 
-                  transform: 'translateY(-8px)', 
-                  boxShadow: theme.shadows[8],
-                }
-              }}
-            >
-              <CardContent sx={{ 
-                flex: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                p: 3,
-              }}>
-                {/* Encabezado */}
-                <Box sx={{ textAlign: 'center', mb: 1 }}>
-                  <Typography variant="h6" sx={{ 
-                    fontWeight: 'bold', 
-                    color: day?.isToday ? theme.palette.primary.main : theme.palette.primary.dark,
-                    fontSize: '1.2rem',
-                  }}>
-                    {day?.day || '--'}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
-                    {day?.date || ''}
-                  </Typography>
-                  <Divider sx={{ my: 2 }} />
-                </Box>
+        <Box sx={{ display: 'flex', gap: 3 }}>
+          {Object.keys(forecast.forecastData).sort((a, b) => {
+            const [da, ma, ya] = a.split('/').map(Number);
+            const [db, mb, yb] = b.split('/').map(Number);
+            return new Date(ya, ma - 1, da) - new Date(yb, mb - 1, db);
+          }).map((dateDay) => {
+            const day = dateDay === forecast.currentWeather.dt_day
+              ? forecast.currentWeather
+              : forecast.forecastData[dateDay];
+            const hasRain = day.condition === 'Lluvia';
+            const recommendation = day.recommendation;
+            const chipColors = getWeatherChipColor(day.condition, hasRain);
 
-                {/* Icono del clima */}
-                <Box sx={{ 
-                  textAlign: 'center', 
-                  my: 2,
+            const nombreDiaLargo = diasCortosToLargos[day.day_txt] || '';
+            const actividadDia = actividades.find(a => a.dia.includes(nombreDiaLargo));
+
+            return (
+              <Card 
+                key={dateDay}
+                sx={{ 
+                  width: isMobile ? 160 : 200,
+                  height: 540,
                   display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  height: 80,
-                  flexShrink: 0
+                  flexDirection: 'column',
+                  transition: 'all 0.3s ease',
+                  borderRadius: 3,
+                  background: selectedCard === dateDay 
+                    ? 'linear-gradient(to bottom, #ffffff 0%,rgb(135, 192, 241) 100%)' 
+                    : 'linear-gradient(to bottom, #ffffff 0%, #f9f9f9 100%)',
+                  '&:hover': { 
+                    transform: 'translateY(-8px)', 
+                    boxShadow: theme.shadows[8],
+                    background: 'linear-gradient(to bottom, #ffffff 0%,rgb(135, 192, 241) 100%)',
+                    cursor: 'pointer',
+                  },
+                  transform: selectedCard === dateDay ? 'translateY(-8px)' : 'none'
+                }}
+                onClick={() => { onDaySelect?.(forecast.forecastData[dateDay]) }}
+              >
+                <CardContent sx={{ 
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  p: 3,
                 }}>
-                  <img 
-                    src={getWeatherIconUrl(day?.weather?.icon, day?.isToday)} 
-                    alt={day?.weather?.description} 
-                    style={{ width: 80, height: 80 }}
-                    onError={(e) => {
-                      e.target.src = getWeatherIconUrl('01d', day?.isToday);
-                    }} 
-                  />
-                </Box>
+                  <Box sx={{ textAlign: 'center', mb: 1 }}>
+                    <Typography variant="h6" sx={{ 
+                      fontWeight: 'bold', 
+                      color: theme.palette.primary.dark,
+                      fontSize: '1.2rem',
+                    }}>
+                      {day.day_txt || '--'}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+                      {day.dt_day_formatted || ''}
+                    </Typography>
+                    <Divider sx={{ my: 2 }} />
+                  </Box>
 
-                {/* Temperatura */}
-                <Typography variant="h5" sx={{ 
-                  textAlign: 'center',
-                  fontWeight: 700, 
-                  color: theme.palette.primary.dark,
-                  mb: 1,
-                  flexShrink: 0
-                }}>
-                  {day?.weather?.temp || '--°C'}
-                </Typography>
-                
-                {/* Rango térmico */}
-                <Typography variant="caption" sx={{ 
-                  textAlign: 'center',
-                  display: 'block',
-                  color: theme.palette.text.secondary,
-                  mb: 2,
-                  flexShrink: 0
-                }}>
-                  {day?.weather?.temp_range || '--'}
-                </Typography>
-
-                {/* Chip del clima */}
-                <Chip
-                  label={day?.weather?.condition || '--'}
-                  size="small"
-                  sx={{
-                    mb: 2,
-                    fontSize: '0.8rem',
-                    fontWeight: 600,
-                    width: '100%',
-                    height: 32,
-                    backgroundColor: chipColors.bg,
-                    color: chipColors.text,
-                    boxShadow: theme.shadows[1],
+                  <Box sx={{ 
+                    textAlign: 'center', 
+                    my: 2,
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    height: 80,
                     flexShrink: 0
-                  }}
-                />
-
-                {/* Recomendación - Ahora con estilo consistente para todos los casos */}
-                <Box sx={{ 
-                  bgcolor: 'rgba(245, 245, 245, 0.7)',
-                  borderRadius: 2,
-                  p: 1.5,
-                  mb: 2,
-                  textAlign: 'center',
-                  minHeight: 80,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: '1px solid rgba(0, 0, 0, 0.1)',
-                  boxShadow: theme.shadows[1]
-                }}>
-                  <Typography variant="body2" sx={{ 
-                    fontWeight: 600, 
-                    fontSize: '0.9rem',
-                    color: theme.palette.text.primary,
-                    lineHeight: 1.3
                   }}>
-                    {recommendation}
-                  </Typography>
-                </Box>
+                    <img 
+                      src={getWeatherIconUrl(day.icon, dateDay === forecast.currentWeather.dt_day)} 
+                      alt="icono" 
+                      style={{ width: 80, height: 80 }}
+                      onError={(e) => {
+                        e.target.src = getWeatherIconUrl('01d', day?.isToday);
+                      }} 
+                    />
+                  </Box>
 
-                {/* Botón */}
-                <Box sx={{ mt: 'auto', flexShrink: 0 }}>
-                  <Button
-                    variant="contained"
+                  <Typography variant="h5" sx={{ 
+                    textAlign: 'center',
+                    fontWeight: 700, 
+                    color: theme.palette.primary.dark,
+                    mb: 1,
+                    flexShrink: 0
+                  }}>
+                    {day.temp + '°C' || '--'}
+                  </Typography>
+                  
+                  <Typography variant="caption" sx={{ 
+                    textAlign: 'center',
+                    display: 'block',
+                    color: theme.palette.text.secondary,
+                    mb: 2,
+                    flexShrink: 0
+                  }}>
+                    {'Min: ' + day.temp_min + '°/ Max: ' + day.temp_max  + '°' || '--'}
+                  </Typography>
+
+                  <Chip
+                    label={day.condition || '--'}
                     size="small"
-                    sx={{ 
-                      width: '100%', 
+                    sx={{
+                      mb: 2,
                       fontSize: '0.8rem',
                       fontWeight: 600,
-                      borderRadius: 2,
-                      textTransform: 'none',
-                      boxShadow: theme.shadows[2],
-                      '&:hover': {
-                        boxShadow: theme.shadows[4],
-                      }
+                      width: '100%',
+                      height: 32,
+                      backgroundColor: chipColors.bg,
+                      color: chipColors.text,
+                      boxShadow: theme.shadows[1],
+                      flexShrink: 0
                     }}
-                    onClick={() => onDaySelect?.({
-                      ...day,
-                      recommendation: recommendation
-                    })}
-                  >
-                    Ver Detalles
-                  </Button>
-                </Box>
-              </CardContent>
-            </Card>
-          );
-        })}
+                  />
+                {!isGuest && (
+                  <Box sx={{ 
+                    bgcolor: actividadDia ? '#f9f9f9' : '#eeeeee',
+                    borderRadius: 2,
+                    p: 1.5,
+                    mt: 2,
+                    textAlign: 'center',
+                    boxShadow: theme.shadows[1],
+                    height: 50,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        fontWeight: 500, 
+                        fontSize: '0.9rem', 
+                        color: actividadDia ? '#333' : '#999',
+                        lineHeight: 1.2,
+                        maxWidth: '100%',
+                        overflowWrap: 'break-word',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden'
+                      }}
+                    >
+                      {loadingActividades
+                        ? 'Cargando...'
+                        : actividadDia 
+                        ? `${getEmojiActividad(actividadDia.nombre)} ${actividadDia.nombre}`
+                        : 'Sin actividad'}
+                    </Typography>
+                  </Box>
+                )}
+                  <Box sx={{ 
+                    bgcolor: 'rgba(245, 245, 245, 0.7)',
+                    borderRadius: 2,
+                    p: 1.5,
+                    mt: 2,
+                    textAlign: 'center',
+                    minHeight: 80,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: '1px solid rgba(0, 0, 0, 0.1)',
+                    boxShadow: theme.shadows[1]
+                  }}>
+                    <Typography variant="body2" sx={{ 
+                      fontWeight: 600, 
+                      fontSize: '0.9rem',
+                      color: theme.palette.text.primary,
+                      lineHeight: 1.3
+                    }}>
+                      {recommendation}
+                    </Typography>
+                  </Box>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </Box>
       </Box>
     </Box>
   );
