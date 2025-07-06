@@ -39,17 +39,17 @@ export function explicarIncompatibilidadPerfil(perfil, weather, nombreActividad 
   if (condicionesPermitidas.length > 0 && !condicionesPermitidas.includes(cond)) problemas.push(`el clima actual (${weather.condition}) no es adecuado`);
 
   if (problemas.length === 0) return null;
-  if (problemas.length === 1) return `⚠️ No es el mejor momento para ${nombre.toLowerCase()}: ${problemas[0]}.`;
-  if (problemas.length === 2) return `⚠️ No se recomienda realizar ${nombre.toLowerCase()} en estas condiciones: ${problemas[0]} y ${problemas[1]}.`;
+  if (problemas.length === 1) return `⚠️ No es el mejor momento para "${nombre.toLowerCase()}": ${problemas[0]}.`;
+  if (problemas.length === 2) return `⚠️ No se recomienda "${nombre.toLowerCase()}" en estas condiciones: ${problemas[0]} y ${problemas[1]}.`;
 
   const problemaEjemplo = problemas[Math.floor(Math.random() * problemas.length)];
-  return `⚠️ Las condiciones no son favorables para ${nombre.toLowerCase()}. Por ejemplo, ${problemaEjemplo}, entre otros factores climáticos.`;
+  return `⚠️ Las condiciones no son favorables para "${nombre.toLowerCase()}". Por ejemplo, ${problemaEjemplo}, entre otros factores climáticos.`;
 }
 
 export function generarMensajeActividadClima(nombreActividad, weather, perfil) {
   const compatible = esClimaCompatibleConPerfil(perfil, weather);
-  const nombre = nombreActividad.toLowerCase();
-  const nombreCapitalizado = capitalizar(nombreActividad);
+  const nombre = nombreActividad?.toLowerCase() || 'la actividad';
+  const nombreCapitalizado = capitalizar(nombreActividad || 'la actividad');
 
   if (!compatible) {
     return explicarIncompatibilidadPerfil(perfil, weather, nombreCapitalizado);

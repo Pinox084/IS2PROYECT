@@ -9,7 +9,6 @@ import ReportProblemIcon from '@mui/icons-material/ReportProblem';
 import { generarRecomendacionExtendida } from '../../utils/recomendacionesClima';
 import axios from 'axios';
 
-
 const DayWeatherDetails = ({ dayWeather }) => {
   const [selectedWeather, setSelectedWeather] = useState(dayWeather.weathers[0]);
   const [actividadesUsuario, setActividadesUsuario] = useState([]);
@@ -172,11 +171,12 @@ const DayWeatherDetails = ({ dayWeather }) => {
           ) : actividadDelDia ? (
             <Typography variant="body1">
               {
-                generarMensajeActividadClima(
-                  actividadDelDia.nombre,
-                  selectedWeather,
-                  perfilesUsuario.find(p => p.actividad?.nombre === actividadDelDia.nombre)
-                )
+generarMensajeActividadClima(
+  actividadDelDia.nombre,
+  selectedWeather,
+  perfilesUsuario.find(p => p.actividad?.nombre === actividadDelDia.nombre)
+)
+
               }
             </Typography>
           ) : (
