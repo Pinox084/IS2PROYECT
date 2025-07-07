@@ -32,7 +32,7 @@ model Actividad {
   id_actividad Int                 @id @default(autoincrement())
   nombre       String              @db.VarChar(100)
   categoria_id Int
-  Categoria    Categoria           @relation(fields: [categoria_id], references: [id_categoria])
+  categoria    Categoria           @relation(fields: [categoria_id], references: [id_categoria])
   perfiles     Perfil_Actividad[]
   usuarios     Usuario_Actividad[]
 }
@@ -53,7 +53,7 @@ model Perfil_Actividad {
   usuario             Usuario?                   @relation(fields: [rut_usuario], references: [rut])
   recomendaciones     Recomendacion[]
   relaciones          Relacion_PerfilCondicion[]
-  Clima               Clima[]
+  climas              Clima[]                    @relation("ClimaToPerfil_Actividad")
 }
 
 model Condiciones_Climaticas {
@@ -130,11 +130,11 @@ model Usuario_Ubicacion {
 model Categoria {
   id_categoria   Int         @id @default(autoincrement())
   name_categoria String
-  Actividad      Actividad[]
+  actividades    Actividad[]
 }
 
 model Clima {
-  id_clim          Int                @id @default(autoincrement())
-  nombre_clima     String
-  Perfil_Actividad Perfil_Actividad[]
+  id_clim      Int                @id @default(autoincrement())
+  nombre_clima String
+  perfiles     Perfil_Actividad[] @relation("ClimaToPerfil_Actividad")
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { 
   Box,
   TextField,
@@ -12,6 +12,8 @@ import SearchIcon from '@mui/icons-material/Search';
 import HorizontalWeekCalendar from '../components/timeComponents/WeekCalendar';
 import DayWeatherDetails from '../components/timeComponents/DayWeatherDetails';
 import { getWeeklyForecast } from '../services/weatherservice';
+import { getActividadesUsuario } from '../services/actividadService';
+import { UserContext } from '../context/UserContext';
 
 const TimePage = () => {
   const theme = useTheme();
@@ -22,6 +24,10 @@ const TimePage = () => {
   const [error, setError] = useState(null);
   const [searchCity, setSearchCity] = useState('');
   const [currentCity, setCurrentCity] = useState('Concepcion');
+  const [actividades, setActividades] = useState([]);
+  const [loadingActividades, setLoadingActividades] = useState(false);
+
+  const { userData } = useContext(UserContext);
 
   const loadWeatherData = async (city = 'Concepcion') => {
     setLoading(true);
@@ -33,17 +39,38 @@ const TimePage = () => {
       setSelectedDay(null); // Resetear selección al cambiar ciudad
     } catch (err) {
       setError(err.message || 'Error al cargar el pronóstico');
-      // Mantener datos anteriores si hay error
       if (!forecast) setForecast(null);
     } finally {
       setLoading(false);
     }
   };
 
-  // Carga inicial
+  // Cargar clima
   useEffect(() => {
     loadWeatherData();
   }, []);
+
+  // Cargar actividades del usuario
+  useEffect(() => {
+    if (!userData?.rut) return;
+
+    const fetchActividades = async () => {
+      setLoadingActividades(true);
+      try {
+
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulación de espera
+        const data = await getActividadesUsuario(userData.rut);
+        console.log("📦 Actividades recibidas del backend:", data); // 👈 Ver en consola
+        setActividades(data);
+      } catch (e) {
+        console.error("❌ Error al cargar actividades:", e);
+      } finally {
+        setLoadingActividades(false);
+      }
+    };
+
+    fetchActividades();
+  }, [userData?.rut]);
 
   const handleSearch = () => {
     if (searchCity.trim()) {
@@ -73,7 +100,6 @@ const TimePage = () => {
 
   return (
     <Box sx={{ p: isMobile ? 2 : 4 }}>
-      {/* Barra de búsqueda */}
       <Box sx={{ 
         display: 'flex', 
         gap: 2, 
@@ -108,14 +134,12 @@ const TimePage = () => {
         </Button>
       </Box>
 
-      {/* Manejo de errores (cuando hay datos previos) */}
       {error && forecast && (
         <Alert severity="warning" sx={{ mb: 2 }}>
           {error} - Solo se permiten ubicaciones dentro de Chile - Mostrando datos de {currentCity}
         </Alert>
       )}
 
-      {/* Contenido principal */}
       {forecast && (
         <Box sx={{
           display: 'flex',
@@ -124,19 +148,16 @@ const TimePage = () => {
           justifyContent: 'center',
           alignItems: 'flex-start'
         }}>
-          {/* Calendario Semanal */}
-          <Box sx={{ 
-            flex: 1,
-            minWidth: isMobile ? '100%' : '70%'
-          }}>
+          <Box sx={{ flex: 1, minWidth: isMobile ? '100%' : '70%' }}>
             <HorizontalWeekCalendar 
               onDaySelect={handleDaySelect} 
               selectedCard={selectedDay?.dt_day}
               forecast={forecast}
+              actividades={actividades} 
+              loadingActividades={loadingActividades} 
             />
           </Box>
 
-          {/* Panel de Detalles del Día */}
           {selectedDay && (
             <Box sx={{ 
               flex: 1,

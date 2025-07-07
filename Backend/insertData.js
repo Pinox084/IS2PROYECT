@@ -8,9 +8,12 @@ async function insertarUsuario({ rut, email, nombres, apellidos, telefono }) {
 }
 
 
-async function insertarActividad({ nombre }) {
+async function insertarActividad({ nombre, categoria_id }) {
   return await prisma.actividad.create({
-    data: { nombre }
+    data: {
+      nombre,
+      categoria_id
+    }
   });
 }
 
