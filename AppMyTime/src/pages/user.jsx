@@ -78,7 +78,7 @@ const RegistroForm = () => {
 
     if (isValid) {
       try {
-        const response = await fetch(`${BACKEND_URL}/api/auth/register`, {
+        const response = await fetch(`${BACKEND_URL}/`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

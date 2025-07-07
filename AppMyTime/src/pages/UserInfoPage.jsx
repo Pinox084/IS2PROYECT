@@ -9,29 +9,28 @@ import {
   Paper,
   Container,
   InputAdornment,
+  CircularProgress // Asegúrate de importar CircularProgress si lo usas
 } from "@mui/material";
 import { AccountCircle, Email, Phone, LocationOn } from "@mui/icons-material";
-import { useNavigate } from "react-router-dom"; // Importar useNavigate
+import { useNavigate } from "react-router-dom";
 
 const UserInfoPage = () => {
   const { userData, setUserData } = useContext(UserContext);
-  const navigate = useNavigate(); // Hook para navegación
+  const navigate = useNavigate();
   const [isEditable, setIsEditable] = useState(false);
-  const [localUserData, setLocalUserData] = useState(userData); // Estado local para edición
-  const [message, setMessage] = useState(''); // Para mensajes de éxito/error
-  const [fieldErrors, setFieldErrors] = useState({}); //Para errores al actualizar datos
+  const [localUserData, setLocalUserData] = useState(userData);
+  const [message, setMessage] = useState(''); // Para mensajes de éxito
+  const [error, setError] = useState(null); // <-- ¡¡¡Esta línea debe estar para el setError!!!
+  const [loading, setLoading] = useState(false); // Para el estado de carga
 
-  const BACKEND_URL = 'http://localhost:4000';
+  const BACKEND_URL = 'http://localhost:4000'; // Correcto, apunta a tu backend
 
   // Redirigir si es invitado o no hay userData válido para perfil
   useEffect(() => {
-    // Si no hay userData (ej. recién cargado y no hay sesión) O es un invitado
     if (!userData || userData.isGuest) {
-      // Redirige a la página principal. Los invitados no tienen un perfil para editar.
       navigate('/time');
       return;
     }
-    // Sincroniza el estado local con userData del contexto cuando cambie
     setLocalUserData(userData);
   }, [userData, navigate]);
 
@@ -45,16 +44,14 @@ const UserInfoPage = () => {
 
   const handleEdit = () => {
     setIsEditable(true);
-    setMessage(''); // Limpiar mensajes al editar
+    setMessage(''); // Limpiar mensajes al entrar en modo edición
+    setError(null); // Limpiar errores al entrar en modo edición
   };
 
   const handleSave = async () => {
-    setMessage('');
-    // Validación básica antes de enviar
-    if (!localUserData.nombres || !localUserData.apellidos || !localUserData.email || !localUserData.rut) {
-      setMessage("Todos los campos requeridos deben ser completados.");
-      return;
-    }
+    setLoading(true); // Iniciar carga
+    setMessage('');   // Limpiar mensajes anteriores
+    setError(null);   // Limpiar errores anteriores
 
     // Validación de correo
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -71,107 +68,96 @@ const UserInfoPage = () => {
     }
 
     try {
-      const token = localStorage.getItem('userToken');
-      if (!token) {
-        setMessage('Error: No hay token de autenticación.');
-        return;
+      if (!localUserData?.rut) {
+        throw new Error('RUT del usuario no disponible para la actualización.');
       }
 
-      //la siguiente es la llamada al backend para actualizar los datos del usuario
-      const response = await fetch(`${BACKEND_URL}/api/users/${localUserData.rut}`, {
+      const userToken = localStorage.getItem('userToken'); // Obtener el token
+      if (!userToken) {
+        throw new Error('No se encontró token de autenticación. Por favor, inicia sesión de nuevo.');
+      }
+
+      const dataToUpdate = {
+        rut_usuario: localUserData.rut,
+        nombres: localUserData.nombres,
+        apellidos: localUserData.apellidos,
+        email: localUserData.email,
+        telefono: localUserData.telefono,
+        ubicacion_texto: localUserData.ubicacion_texto,
+      };
+
+      // --- AÑADE ESTOS CONSOLE.LOGS EN EL FRONTEND ---
+      console.log('🔵 [FRONTEND] Token enviado:', userToken ? 'TOKEN_PRESENTE' : 'NO_TOKEN');
+      console.log('🔵 [FRONTEND] Longitud del Token:', userToken ? userToken.length : 'N/A');
+      console.log('🔵 [FRONTEND] Datos de usuario para actualizar:', dataToUpdate);
+      // ------------------------------------------------
+
+      const response = await fetch(`${BACKEND_URL}/api/usuario`, { // Endpoint PUT para usuario
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`, // Envía el token JWT
+          'Authorization': `Bearer ${userToken}`,
         },
-        body: JSON.stringify({
-          email: localUserData.email,
-          nombres: localUserData.nombres,
-          apellidos: localUserData.apellidos,
-          telefono: localUserData.telefono,
-          // No enviar ubicacion_texto si no se agregó al modelo Usuario
-          // Si ubicacion es una relación, el manejo es más complejo y no es directo aquí.
-          // Si es un campo de texto simple: ubicacion: localUserData.ubicacion
-        }),
+        body: JSON.stringify(dataToUpdate),
       });
 
-      const data = await response.json();
+      const result = await response.json(); // Intentar parsear la respuesta
 
       if (response.ok) {
-        setMessage("Datos guardados correctamente.");
+        setUserData(localUserData);
+        localStorage.setItem('userData', JSON.stringify(localUserData));
+        setMessage('¡Información actualizada exitosamente!');
         setIsEditable(false);
-        setUserData(prevData => ({ // Actualiza el contexto con los nuevos datos
-          ...prevData,
-          ...data.user, // Recibe los datos actualizados del backend
-          isGuest: false // Asegúrate de que no es invitado
-        }));
       } else {
-        setMessage(`Error al guardar: ${data.error || 'Algo salió mal.'}`);
+        setError(result.error || 'Error al guardar los cambios.');
       }
-    } catch (error) {
-      console.error('Error al actualizar perfil:', error);
-      setMessage('Error de conexión con el servidor al guardar datos.');
+    } catch (err) {
+      console.error('Error al guardar perfil:', err);
+      setError(err.message || 'Error desconocido al guardar los cambios.');
+    } finally {
+      setLoading(false); // Finalizar carga
     }
   };
 
-  // No renderizar el formulario si es invitado o si userData aún no está cargado correctamente (y no es invitado)
-  if (!userData || userData.isGuest) {
-    // Si llegamos aquí, es porque la redirección aún no ha ocurrido o se está procesando
-    return <Typography>Cargando información del usuario o redirigiendo...</Typography>;
+  if (loading && !localUserData) {
+    return (
+      <Container sx={{ mt: 5, display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
+        <CircularProgress />
+        <Typography variant="h6" sx={{ ml: 2 }}>Cargando perfil...</Typography>
+      </Container>
+    );
+  }
+
+  if (!localUserData) {
+    return (
+      <Container sx={{ mt: 5, textAlign: 'center' }}>
+        <Typography variant="h6" color="textSecondary">Cargando datos del usuario...</Typography>
+      </Container>
+    );
   }
 
   return (
-    <Container maxWidth="sm"
-    sx={{
-        display: "flex",
-        justifyContent: "flex-start",
-        alignItems: "flex-start",
-      }}>
-      <Paper
-        elevation={2}
-        sx={{
-          padding: 4,
-          borderRadius: 4,
-          backdropFilter: "blur(10px)",
-          backgroundColor: "rgba(255, 255, 255, 0.15)",
-          boxShadow: "0 8px 32px rgba(0, 0, 0, 0.25)",
-          border: "1px solid rgba(255, 255, 255, 0.2)",
-          mt: 4, // Margen superior para separarlo
-        }}
-      >
-        <Typography
-          variant="h4"
-          component="h1"
-          gutterBottom
-          align="center"
-          sx={{
-            fontFamily: "Poppins, sans-serif",
-            fontWeight: "bold",
-            color: "#1976d2",
-            fontSize: "2rem",
-          }}
-        >
-          Información del Usuario
+    <Container maxWidth="sm" sx={{ mt: 5, mb: 5 }}>
+      <Paper elevation={6} sx={{ p: { xs: 2, md: 4 }, borderRadius: 2 }}>
+        <Typography variant="h5" component="h2" align="center" gutterBottom sx={{ mb: 3, color: '#1976d2', fontWeight: 'bold' }}>
+          Información de Perfil
         </Typography>
 
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 2 }}>
+        <Box component="form" sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <TextField
             label="RUT"
+            name="rut"
             variant="filled"
             fullWidth
-            name="rut"
             value={localUserData.rut || ''}
-            disabled={!isEditable}
-            InputProps={{
-              readOnly: true, // El RUT no debería ser editable
-              startAdornment: (<InputAdornment position="start"><AccountCircle /></InputAdornment>),
-            }}
+            disabled
+            InputProps={{ startAdornment: (<InputAdornment position="start"><AccountCircle /></InputAdornment>), }}
           />
           <TextField
             label="Nombres"
+            name="nombres"
             variant="filled"
             fullWidth
-            name="nombres"
             value={localUserData.nombres || ''}
             onChange={handleChange}
             disabled={!isEditable}
@@ -179,9 +165,9 @@ const UserInfoPage = () => {
           />
           <TextField
             label="Apellidos"
+            name="apellidos"
             variant="filled"
             fullWidth
-            name="apellidos"
             value={localUserData.apellidos || ''}
             onChange={handleChange}
             disabled={!isEditable}
@@ -189,9 +175,9 @@ const UserInfoPage = () => {
           />
           <TextField
             label="Correo Electrónico"
+            name="email"
             variant="filled"
             fullWidth
-            name="email"
             value={localUserData.email || ''}
             onChange={handleChange}
             disabled={!isEditable}
@@ -199,31 +185,33 @@ const UserInfoPage = () => {
           />
           <TextField
             label="Teléfono"
+            name="telefono"
             variant="filled"
             fullWidth
-            name="telefono"
             value={localUserData.telefono || ''}
             onChange={handleChange}
             disabled={!isEditable}
             InputProps={{ startAdornment: (<InputAdornment position="start"><Phone /></InputAdornment>), }}
           />
-          {/* Si ubicacion es un campo de texto simple en Usuario, descomentar */}
-          {/*
           <TextField
             label="Ubicación"
+            name="ubicacion_texto"
             variant="filled"
             fullWidth
-            name="ubicacion_texto" // O el nombre de tu campo
             value={localUserData.ubicacion_texto || ''}
             onChange={handleChange}
             disabled={!isEditable}
             InputProps={{ startAdornment: (<InputAdornment position="start"><LocationOn /></InputAdornment>), }}
           />
-          */}
 
           {message && (
-            <Typography color={message.includes('Error') ? 'error' : 'primary'} variant="body2" sx={{ mt: 1, textAlign: 'center' }}>
+            <Typography color="primary" variant="body2" sx={{ mt: 1, textAlign: 'center', fontWeight: 'bold' }}>
               {message}
+            </Typography>
+          )}
+          {error && ( // Muestra el mensaje de error si existe
+            <Typography color="error" variant="body2" sx={{ mt: 1, textAlign: 'center', fontWeight: 'bold' }}>
+              {error}
             </Typography>
           )}
 
@@ -250,8 +238,9 @@ const UserInfoPage = () => {
                 background: "linear-gradient(to right, #1976d2, #42a5f5)",
                 "&:hover": { background: "linear-gradient(to right, #1565c0, #2196f3)", },
               }}
+              disabled={loading}
             >
-              Guardar Cambios
+              {loading ? <CircularProgress size={24} color="inherit" /> : 'Guardar Cambios'}
             </Button>
           )}
         </Box>

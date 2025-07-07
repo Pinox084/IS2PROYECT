@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const weatherRouter = require('./weatherRouter');
-const {logger} = require('./middleware')
+const { logger } = require('./middleware');
 const dotenv = require('dotenv');
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcrypt');
@@ -17,7 +17,7 @@ const {
   eliminarActividadUsuario,
   obtenerActividadesUsuario,
   modifDiaActividadUsuario,
-  obtenerClimas,
+  obtenerClimas, // Asegúrate de que esto está definido en controlActividades.js si lo usas
   obtenerPerfilesUsuario,
   eliminarPerfilUsuario,
   editarPerfilUsuario
@@ -28,140 +28,223 @@ const twilioRouter = require('./twilioRouter');
 
 dotenv.config();
 const app = express();
-app.use(cors());
-app.use(express.static('dist'));
-app.use(express.json());
-app.use(logger);
-app.use('/api/weather', weatherRouter);
-app.use('/twilio', twilioRouter); //ruta de twilio
-const prisma = new PrismaClient();
-const JWT_SECRET = process.env.JWT_SECRET || 'supersecreto';
+const prisma = new PrismaClient(); // Inicializa Prisma Client aquí
+const JWT_SECRET = process.env.JWT_SECRET || 'supersecreto'; // Define tu secreto JWT
 
+// Middlewares
 app.use(cors());
-app.use(express.json());
-app.use(express.static('dist'));
+app.use(express.json()); // Para parsear el body de las peticiones JSON
+app.use(express.static('dist')); // Para servir archivos estáticos de React
+app.use(logger); // Tu logger personalizado
+app.use('/api/weather', weatherRouter); // Rutas de clima
 
-// --- LOGIN ---
+// Middleware para verificar el token JWT
+const verifyToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  console.log('🟢 [BACKEND - verifyToken] Headers de autorización recibidos:', authHeader);
+  console.log('🟢 [BACKEND - verifyToken] Token extraído:', token ? token.substring(0, 30) + '...' : 'NO_TOKEN');
+
+  if (!token) {
+    console.warn('🔴 [BACKEND - verifyToken] No se proporcionó token.');
+    return res.status(401).json({ error: 'Acceso denegado. No se proporcionó token.' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET); // Usa JWT_SECRET
+    req.user = decoded; // Adjunta el payload decodificado a la solicitud
+    console.log('🟢 [BACKEND - verifyToken] Token decodificado (req.user):', req.user);
+    next();
+  } catch (error) {
+    console.error('🔴 [BACKEND - verifyToken] Error al verificar token:', error.message);
+    res.status(403).json({ error: 'Token inválido o expirado.' });
+  }
+};
+
+
+// --- RUTAS DE AUTENTICACIÓN Y USUARIO ---
+
+// LOGIN
 app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
+  console.log('POST /api/auth/login', req.query, req.body); // Log de la petición de login
+
   if (!email || !password) {
     return res.status(400).json({ error: 'Correo electrónico y contraseña son obligatorios.' });
   }
+
   try {
-    const user = await prisma.usuario.findUnique({ where: { email } });
+    const user = await prisma.usuario.findUnique({
+      where: { email: email },
+    });
+
     if (!user) {
-      return res.status(401).json({ error: 'Correo electrónico no registrado o credenciales inválidas.' });
+      return res.status(401).json({ error: 'Credenciales inválidas.' });
     }
+
     const isPasswordValid = await bcrypt.compare(password, user.password);
+
     if (!isPasswordValid) {
       return res.status(401).json({ error: 'Credenciales inválidas.' });
     }
+
     const token = jwt.sign(
       { rut: user.rut, email: user.email },
-      JWT_SECRET,
+      JWT_SECRET, // Usa JWT_SECRET aquí también
       { expiresIn: '1h' }
     );
+
     const { password: _, ...userWithoutPassword } = user;
+
     res.status(200).json({
       message: 'Inicio de sesión exitoso.',
       user: userWithoutPassword,
       token: token,
     });
+
   } catch (error) {
+    console.error('Error en el proceso de inicio de sesión:', error);
     res.status(500).json({ error: 'Error interno del servidor. Por favor, inténtalo de nuevo más tarde.' });
   }
 });
 
-// --- REGISTRO ---
+
+// REGISTRO DE USUARIO
 app.post('/api/auth/register', async (req, res) => {
-  const { rut, email, nombres, apellidos, telefono, password } = req.body;
-  if (!rut || !email || !nombres || !apellidos || !telefono || !password) {
-    return res.status(400).json({ error: 'Todos los campos son obligatorios.' });
+  const { rut, nombres, apellidos, email, password, telefono, ubicacion_texto } = req.body;
+
+  if (!rut || !nombres || !apellidos || !email || !password) {
+    return res.status(400).json({ error: 'Faltan campos obligatorios para el registro.' });
   }
+
   try {
-    const existingUser = await prisma.usuario.findFirst({
-      where: {
-        OR: [
-          { rut: rut },
-          { email: email }
-        ]
-      }
-    });
-    if (existingUser) {
-      if (existingUser.rut === rut) {
-        return res.status(409).json({ error: 'El RUT ya está registrado.' });
-      }
-      if (existingUser.email === email) {
-        return res.status(409).json({ error: 'El correo electrónico ya está registrado.' });
-      }
-    }
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = await prisma.usuario.create({
       data: {
         rut,
-        email,
         nombres,
         apellidos,
-        telefono,
+        email,
         password: hashedPassword,
+        telefono: telefono || null,
+        ubicacion_texto: ubicacion_texto || null,
       },
     });
-    const token = jwt.sign(
-      { rut: newUser.rut, email: newUser.email },
-      JWT_SECRET,
-      { expiresIn: '1h' }
-    );
+
     const { password: _, ...userWithoutPassword } = newUser;
+
     res.status(201).json({
       message: 'Usuario registrado exitosamente.',
       user: userWithoutPassword,
-      token,
     });
   } catch (error) {
     console.error('Error al registrar usuario:', error);
+    if (error.code === 'P2002') { // Código de error de Prisma para campos únicos duplicados
+      return res.status(409).json({ error: 'El RUT o el correo electrónico ya están registrados.' });
+    }
     res.status(500).json({ error: 'Error interno del servidor al registrar el usuario.' });
   }
 });
 
-// --- ACTUALIZACIÓN DATOS USUARIO ---
-app.put('/api/users/:rut', async (req, res) => {
-  const { rut } = req.params;
-  const { email, nombres, apellidos, telefono } = req.body;
+
+// OBTENER INFORMACIÓN DEL USUARIO (Protegida)
+app.get('/api/usuario', verifyToken, async (req, res) => {
+  // El RUT del usuario autenticado viene del token decodificado
+  const authenticatedRut = req.user.rut;
+  console.log('GET /api/usuario - RUT autenticado:', authenticatedRut);
+
+  if (!authenticatedRut) {
+    return res.status(400).json({ error: 'RUT de usuario no encontrado en el token.' });
+  }
 
   try {
-    const usuarioActualizado = await prisma.usuario.update({
-      where: { rut },
-      data: {
-        email,
-        nombres,
-        apellidos,
-        telefono
-      }
+    const user = await prisma.usuario.findUnique({
+      where: { rut: authenticatedRut },
+      select: { // Seleccionar los campos a devolver (sin la contraseña)
+        rut: true,
+        nombres: true,
+        apellidos: true,
+        email: true,
+        telefono: true,
+        ubicacion_texto: true,
+      },
     });
 
-    res.status(200).json({
-      mensaje: 'Usuario actualizado correctamente.',
-      user: usuarioActualizado
-    });
+    if (!user) {
+      return res.status(404).json({ error: 'Usuario no encontrado.' });
+    }
+
+    res.status(200).json(user);
   } catch (error) {
-    console.error('Error al actualizar usuario:', error);
-    res.status(500).json({ error: 'Error al actualizar usuario', detalles: error.message });
+    console.error('Error al obtener información del usuario:', error);
+    res.status(500).json({ error: 'Error interno del servidor al obtener el usuario.', detalles: error.message });
   }
 });
 
-// --- MIDDLEWARE JWT ---
-const authenticateToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-  if (token == null) return res.sendStatus(401);
-  jwt.verify(token, JWT_SECRET, (err, user) => {
-    if (err) return res.sendStatus(403);
-    req.user = user;
-    next();
-  });
-};
 
-// --- CRUD ACTIVIDADES ---
+// ACTUALIZAR INFORMACIÓN COMPLETA DEL USUARIO (Protegida)
+app.put('/api/usuario', verifyToken, async (req, res) => {
+  console.log('🟢 [BACKEND - PUT /api/usuario] Petición recibida para actualizar usuario.');
+  const { rut_usuario, nombres, apellidos, email, telefono, ubicacion_texto } = req.body;
+  const authenticatedRut = req.user.rut; // Esto viene del token decodificado por verifyToken
+
+  // 1. Validar que el RUT en el cuerpo coincide con el RUT del token autenticado
+  if (!rut_usuario || rut_usuario !== authenticatedRut) {
+    console.warn('🟠 [BACKEND - PUT /api/usuario] Mismatch o falta de RUT: el rut_usuario en el body debe coincidir con el autenticado.');
+    return res.status(403).json({ error: 'No tienes permiso para actualizar este perfil o el RUT es inconsistente.' });
+  }
+
+  try {
+    // 2. Construir el objeto de datos para la actualización dinámicamente
+    // Esto permite actualizar solo los campos que se envían y no sobrescribir otros con 'undefined'
+    const dataToUpdate = {};
+    if (nombres !== undefined) dataToUpdate.nombres = nombres;
+    if (apellidos !== undefined) dataToUpdate.apellidos = apellidos;
+    if (email !== undefined) dataToUpdate.email = email;
+    if (telefono !== undefined) dataToUpdate.telefono = telefono;
+    if (ubicacion_texto !== undefined) dataToUpdate.ubicacion_texto = ubicacion_texto;
+
+    // Si no hay campos para actualizar, devolver un error 400
+    if (Object.keys(dataToUpdate).length === 0) {
+      return res.status(400).json({ error: 'No se proporcionaron datos para actualizar.' });
+    }
+
+    // 3. Actualizar el usuario en la base de datos usando Prisma
+    const updatedUser = await prisma.usuario.update({
+      where: { rut: rut_usuario },
+      data: dataToUpdate,
+      select: { // Selecciona solo los campos que quieres devolver (excluyendo la contraseña)
+        rut: true,
+        nombres: true,
+        apellidos: true,
+        email: true,
+        telefono: true,
+        ubicacion_texto: true,
+      }
+    });
+
+    // 4. Enviar respuesta exitosa al frontend
+    res.status(200).json({
+      message: 'Perfil actualizado exitosamente.',
+      user: updatedUser, // Devuelve los datos actualizados del usuario (sin contraseña)
+    });
+    console.log('🟢 [BACKEND - PUT /api/usuario] Perfil actualizado con éxito para RUT:', rut_usuario);
+
+  } catch (error) {
+    console.error('🔴 [BACKEND - PUT /api/usuario] Error al actualizar perfil:', error);
+    // Manejo específico para errores de Prisma, ej. si el RUT no existe
+    if (error.code === 'P2025') {
+      res.status(404).json({ error: 'Usuario no encontrado.' });
+    } else {
+      res.status(500).json({ error: 'Error interno del servidor al actualizar perfil.', detalles: error.message });
+    }
+  }
+});
+
+
+// --- RUTAS DE ACTIVIDADES ---
+
 app.get('/api/actividades', async (req, res) => {
   try {
     const actividades = await obtenerActividades();
@@ -173,62 +256,68 @@ app.get('/api/actividades', async (req, res) => {
 
 app.post('/api/actividades', async (req, res) => {
   try {
-    const { nombre } = req.body;
-    const nueva = await crearActividad(nombre);
-    res.status(201).json(nueva);
+    const nuevaActividad = await crearActividad(req.body);
+    res.status(201).json(nuevaActividad);
   } catch (error) {
     res.status(500).json({ error: 'Error al crear actividad', detalles: error.message });
   }
 });
 
-app.put('/api/actividades/:id', async (req, res) => {
+app.put('/api/actividades', async (req, res) => {
+  const { id, ...data } = req.body;
   try {
-    const { id } = req.params;
-    const { nombre } = req.body;
-    const actualizada = await actualizarActividad(Number(id), nombre);
-    res.json(actualizada);
+    const actividadActualizada = await actualizarActividad(id, data);
+    res.json(actividadActualizada);
   } catch (error) {
     res.status(500).json({ error: 'Error al actualizar actividad', detalles: error.message });
   }
 });
 
-app.delete('/api/actividades/:id', async (req, res) => {
+app.delete('/api/actividades', async (req, res) => {
+  const { id } = req.body;
   try {
-    const { id } = req.params;
-    await eliminarActividad(Number(id));
+    await eliminarActividad(id);
     res.status(204).send();
   } catch (error) {
     res.status(500).json({ error: 'Error al eliminar actividad', detalles: error.message });
   }
 });
 
-// --- USUARIO ACTIVIDAD ---
-app.post('/api/usuario_actividad', async (req, res) => {
-  const { rut_usuario, id_actividad } = req.body;
-  if (!rut_usuario || !id_actividad) {
-    return res.status(400).json({ error: 'Faltan datos obligatorios' });
+app.delete('/api/usuario_actividades', async (req, res) => {
+  const { rut_usuario } = req.body;
+  if (!rut_usuario) {
+    return res.status(400).json({ error: 'rut_usuario es requerido' });
   }
   try {
-    const resultado = await asociarActividadUsuario(rut_usuario, id_actividad);
-    res.status(201).json(resultado);
-  } catch (error) {
-    res.status(500).json({
-      error: 'Error al asociar actividad a usuario',
-      detalles: error.message
-    });
-  }
-});
-
-app.delete('/api/usuario_actividad', async (req, res) => {
-  try {
-    const { rut_usuario } = req.body;
-    if (!rut_usuario) {
-      return res.status(400).json({ error: 'rut_usuario es requerido' });
-    }
     await eliminarActividadesUsuario(rut_usuario);
     res.status(204).send();
   } catch (error) {
     res.status(500).json({ error: 'Error al eliminar actividades del usuario', detalles: error.message });
+  }
+});
+
+app.post('/api/asociar_actividad', async (req, res) => {
+  const { rut_usuario, id_actividad, id_perfil } = req.body;
+  try {
+    const resultado = await asociarActividadUsuario(rut_usuario, id_actividad, id_perfil);
+    res.status(201).json(resultado);
+  } catch (error) {
+    console.error("❌ ERROR DETECTADO EN BACKEND (asociar_actividad):", error);
+    res.status(500).json({ error: 'Error al asociar actividad al usuario', detalles: error.message });
+  }
+});
+
+app.delete('/api/usuario_actividad', async (req, res) => {
+  const { rut_usuario, id_actividad } = req.body;
+  if (!rut_usuario || !id_actividad) {
+    return res.status(400).json({ error: 'Faltan datos obligatorios para eliminar actividad del usuario' });
+  }
+  try {
+    await eliminarActividadUsuario(rut_usuario, id_actividad);
+    res.status(204).send();
+  } catch (error) {
+    console.error("❌ ERROR DETECTADO EN BACKEND (eliminar_actividad_usuario):", error);
+    res.status(500).json({ error: 'Error al eliminar actividad del usuario', detalles: error.message });
   }
 });
 
@@ -238,11 +327,11 @@ app.get('/api/usuario_actividad', async (req, res) => {
     const actividades = await obtenerActividadesUsuario(rut_usuario);
     res.json(actividades);
   } catch (error) {
-    res.status(500).json({ error: 'Error al obtener actividades del usuario' });
+    res.status(500).json({ error: 'Error al obtener actividades del usuario', detalles: error.message });
   }
 });
 
-// --- MODIFICAR DÍA DE ACTIVIDAD ---
+// MODIFICAR DÍA DE ACTIVIDAD
 app.put('/api/usuario/dia', async (req, res) => {
   console.log('🟢 Recibida petición PUT /api/usuario/dia', req.body);
   const { rut_usuario, id_actividad, nuevoDia } = req.body;
@@ -258,16 +347,7 @@ app.put('/api/usuario/dia', async (req, res) => {
   }
 });
 
-// --- OBTENER CLIMAS ---
-app.get('/api/clima', async (req, res) => {
-  try {
-    const climas = await obtenerClimas();
-    res.json(climas);
-  } catch (error) {
-    res.status(500).json({ error: 'Error al obtener climas', detalles: error.message });
-  }
-});
-
+// Rutas para Perfiles
 app.get('/api/perfiles', async (req, res) => {
   const { rut_usuario } = req.query;
   if (!rut_usuario) {
@@ -308,14 +388,15 @@ app.put('/api/perfiles', async (req, res) => {
 
   try {
     await editarPerfilUsuario(rut_usuario, id_actividad, perfilData);
-    res.status(200).json({ mensaje: 'Perfil actualizado exitosamente' });
+    res.status(200).json({ message: 'Perfil actualizado exitosamente' });
   } catch (error) {
-    console.error('Error al actualizar perfil:', error);
-    res.status(500).json({ error: 'Error del servidor al actualizar perfil' });
+    res.status(500).json({ error: 'Error al editar perfil', detalles: error.message });
   }
 });
-// --- INICIAR SERVIDOR ---
+
+
+// INICIAR SERVIDOR
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
-  console.log(`[Servidor] Escuchando en http://localhost:${PORT}`);
+  console.log(`Servidor Express corriendo en el puerto ${PORT}`);
 });
