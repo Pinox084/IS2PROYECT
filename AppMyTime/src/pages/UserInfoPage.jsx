@@ -19,6 +19,7 @@ const UserInfoPage = () => {
   const [isEditable, setIsEditable] = useState(false);
   const [localUserData, setLocalUserData] = useState(userData); // Estado local para edición
   const [message, setMessage] = useState(''); // Para mensajes de éxito/error
+  const [fieldErrors, setFieldErrors] = useState({}); //Para errores al actualizar datos
 
   const BACKEND_URL = 'http://localhost:4000';
 
@@ -55,6 +56,20 @@ const UserInfoPage = () => {
       return;
     }
 
+    // Validación de correo
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(localUserData.email)) {
+      setMessage("Por favor, introduce un correo electrónico válido.");
+      return;
+    }
+
+    // Validación de teléfono (solo dígitos y mínimo 8-9 caracteres, ajustable a tu país)
+    const phoneRegex = /^[0-9]{9}$/;
+    if (localUserData.telefono && !phoneRegex.test(localUserData.telefono)) {
+      setMessage("El número de teléfono debe contener solo dígitos y tener entre 9 caracteres.");
+      return;
+    }
+
     try {
       const token = localStorage.getItem('userToken');
       if (!token) {
@@ -63,7 +78,7 @@ const UserInfoPage = () => {
       }
 
       //la siguiente es la llamada al backend para actualizar los datos del usuario
-      const response = await fetch(`${BACKEND_URL}/api/uses/${localUserData.rut}`, {
+      const response = await fetch(`${BACKEND_URL}/api/users/${localUserData.rut}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

@@ -6,6 +6,7 @@ const dotenv = require('dotenv');
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+require('./smsProgramado'); // importa el programador automático
 const {
   obtenerActividades,
   crearActividad,
@@ -19,6 +20,7 @@ const {
 } = require('./controlActividades.js');
 // twilio será utlizado pera el envío de sms, tiene créditos limitados
 const twilioRouter = require('./twilioRouter');
+const { user } = require('pg/lib/defaults.js');
 
 dotenv.config();
 const app = express();
@@ -114,6 +116,32 @@ app.post('/api/auth/register', async (req, res) => {
   } catch (error) {
     console.error('Error al registrar usuario:', error);
     res.status(500).json({ error: 'Error interno del servidor al registrar el usuario.' });
+  }
+});
+
+// --- ACTUALIZACIÓN DATOS USUARIO ---
+app.put('/api/users/:rut', async (req, res) => {
+  const { rut } = req.params;
+  const { email, nombres, apellidos, telefono } = req.body;
+
+  try {
+    const usuarioActualizado = await prisma.usuario.update({
+      where: { rut },
+      data: {
+        email,
+        nombres,
+        apellidos,
+        telefono
+      }
+    });
+
+    res.status(200).json({
+      mensaje: 'Usuario actualizado correctamente.',
+      user: usuarioActualizado
+    });
+  } catch (error) {
+    console.error('Error al actualizar usuario:', error);
+    res.status(500).json({ error: 'Error al actualizar usuario', detalles: error.message });
   }
 });
 
