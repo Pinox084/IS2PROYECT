@@ -1,18 +1,21 @@
+// src/pages/time.jsx
 import React, { useState, useEffect, useContext } from 'react';
-import { 
+import {
   Box,
   TextField,
   Button,
   CircularProgress,
   Alert,
   useTheme,
-  useMediaQuery
+  useMediaQuery,
+  Typography,
+  InputAdornment
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import HorizontalWeekCalendar from '../components/timeComponents/WeekCalendar';
 import DayWeatherDetails from '../components/timeComponents/DayWeatherDetails';
 import { getWeeklyForecast } from '../services/weatherservice';
-import { getActividadesUsuario } from '../services/actividadService';
+import { getActividadesUsuario } from '../services/actividadService'; // <-- ¡CORREGIDO AQUÍ!
 import { UserContext } from '../context/UserContext';
 
 const TimePage = () => {
@@ -23,7 +26,7 @@ const TimePage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchCity, setSearchCity] = useState('');
-  const [currentCity, setCurrentCity] = useState('Concepcion');
+  const [currentCity, setCurrentCity] = useState('');
   const [actividades, setActividades] = useState([]);
   const [loadingActividades, setLoadingActividades] = useState(false);
 
@@ -33,97 +36,89 @@ const TimePage = () => {
     setLoading(true);
     setError(null);
     try {
-      const weatherData = await getWeeklyForecast(city);
+      const cityToFetch = city && city.trim() !== '' ? city : 'Concepcion';
+      const weatherData = await getWeeklyForecast(cityToFetch);
       setForecast(weatherData);
       setCurrentCity(weatherData.location.city);
-      setSelectedDay(null); // Resetear selección al cambiar ciudad
+      setSelectedDay(null);
     } catch (err) {
-      setError(err.message || 'Error al cargar el pronóstico');
-      if (!forecast) setForecast(null);
+      console.error("Error al cargar datos del clima:", err);
+      setError("No se pudo cargar el clima para la ubicación. Intenta de nuevo.");
+      setForecast(null);
     } finally {
       setLoading(false);
     }
   };
 
-  // Cargar clima
   useEffect(() => {
-    loadWeatherData();
-  }, []);
+    let initialCity = 'Concepcion';
 
-  // Cargar actividades del usuario
-  useEffect(() => {
-    if (!userData?.rut) return;
+    if (userData && userData.ubicacion_texto && userData.ubicacion_texto.trim() !== '') {
+      initialCity = userData.ubicacion_texto;
+      console.log('🟢 [TimePage] Usando ubicación del usuario:', initialCity);
+    } else {
+      console.log('🟡 [TimePage] No hay ubicación de usuario o está vacía. Usando ubicación predeterminada:', initialCity);
+    }
 
-    const fetchActividades = async () => {
+    loadWeatherData(initialCity);
+
+    if (userData && !userData.isGuest && userData.rut) {
       setLoadingActividades(true);
-      try {
-
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulación de espera
-        const data = await getActividadesUsuario(userData.rut);
-        console.log("📦 Actividades recibidas del backend:", data); // 👈 Ver en consola
-        setActividades(data);
-      } catch (e) {
-        console.error("❌ Error al cargar actividades:", e);
-      } finally {
-        setLoadingActividades(false);
-      }
-    };
-
-    fetchActividades();
-  }, [userData?.rut]);
+      getActividadesUsuario(userData.rut)
+        .then(data => {
+          setActividades(data);
+        })
+        .catch(err => {
+          console.error("Error al obtener actividades del usuario:", err);
+        })
+        .finally(() => {
+          setLoadingActividades(false);
+        });
+    } else {
+      setActividades([]);
+    }
+  }, [userData]);
 
   const handleSearch = () => {
     if (searchCity.trim()) {
-      loadWeatherData(searchCity.trim());
+      loadWeatherData(searchCity);
     }
   };
 
   const handleDaySelect = (day) => {
-    setSelectedDay(prev => prev?.dt_day === day.dt_day ? null : day);
+    setSelectedDay(day);
   };
 
-  if (loading && !forecast) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 10 }}>
-        <CircularProgress size={80} />
-      </Box>
-    );
-  }
-
-  if (error && !forecast) {
-    return (
-      <Alert severity="error" sx={{ m: 4 }}>
-        {error}
-      </Alert>
-    );
-  }
-
   return (
-    <Box sx={{ p: isMobile ? 2 : 4 }}>
-      <Box sx={{ 
-        display: 'flex', 
-        gap: 2, 
-        mb: 4,
-        justifyContent: 'center',
-        flexDirection: isMobile ? 'column' : 'row',
-        alignItems: 'center'
-      }}>
+    <Box sx={{ flexGrow: 1, p: 3, pt: 5, maxWidth: 'lg', mx: 'auto' }}>
+      <Typography variant="h4" component="h1" gutterBottom align="center" sx={{ mb: 4, fontWeight: 'bold', color: '#3f51b5' }}>
+        Clima y Actividades
+      </Typography>
+
+      <Box sx={{ display: 'flex', justifyContent: 'center', mb: 4, gap: 2, flexDirection: isMobile ? 'column' : 'row' }}>
         <TextField
-          label="Buscar ciudad"
+          label="Buscar Ciudad"
           variant="outlined"
           value={searchCity}
           onChange={(e) => setSearchCity(e.target.value)}
-          onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-          sx={{ 
-            width: isMobile ? '100%' : '400px',
-            backgroundColor: 'background.paper'
+          onKeyPress={(e) => {
+            if (e.key === 'Enter') {
+              handleSearch();
+            }
+          }}
+          sx={{ width: isMobile ? '100%' : '300px' }}
+          InputProps={{
+            endAdornment: (
+              <InputAdornment position="end">
+                <SearchIcon />
+              </InputAdornment>
+            ),
           }}
         />
         <Button
           variant="contained"
           onClick={handleSearch}
-          startIcon={<SearchIcon />}
-          sx={{ 
+          sx={{
             height: '56px',
             px: 4,
             width: isMobile ? '100%' : 'auto'
@@ -136,11 +131,16 @@ const TimePage = () => {
 
       {error && forecast && (
         <Alert severity="warning" sx={{ mb: 2 }}>
-          {error} - Solo se permiten ubicaciones dentro de Chile - Mostrando datos de {currentCity}
+          {error} - Mostrando datos de {currentCity}
         </Alert>
       )}
 
-      {forecast && (
+      {loading && !forecast ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '300px' }}>
+          <CircularProgress />
+          <Typography variant="h6" sx={{ ml: 2 }}>Cargando datos del clima...</Typography>
+        </Box>
+      ) : forecast ? (
         <Box sx={{
           display: 'flex',
           flexDirection: isMobile ? 'column' : 'row',
@@ -149,17 +149,17 @@ const TimePage = () => {
           alignItems: 'flex-start'
         }}>
           <Box sx={{ flex: 1, minWidth: isMobile ? '100%' : '70%' }}>
-            <HorizontalWeekCalendar 
-              onDaySelect={handleDaySelect} 
+            <HorizontalWeekCalendar
+              onDaySelect={handleDaySelect}
               selectedCard={selectedDay?.dt_day}
               forecast={forecast}
-              actividades={actividades} 
-              loadingActividades={loadingActividades} 
+              actividades={actividades}
+              loadingActividades={loadingActividades}
             />
           </Box>
 
           {selectedDay && (
-            <Box sx={{ 
+            <Box sx={{
               flex: 1,
               width: isMobile ? '100%' : '30%',
               position: isMobile ? 'static' : 'sticky',
@@ -173,6 +173,14 @@ const TimePage = () => {
             </Box>
           )}
         </Box>
+      ) : (
+        !loading && (
+          <Box sx={{ textAlign: 'center', mt: 4 }}>
+            <Typography variant="h6" color="textSecondary">
+              No se pudo cargar el pronóstico del clima. Por favor, intenta buscar una ciudad.
+            </Typography>
+          </Box>
+        )
       )}
     </Box>
   );

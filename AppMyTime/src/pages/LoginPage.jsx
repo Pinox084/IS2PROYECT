@@ -36,20 +36,24 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (response.ok) {
-        // Almacenar datos del usuario y el token, y establecer isGuest en false
-        setUserData({
-          ...data.user,
-          token: data.token,
-          isGuest: false, // No es un invitado
-        });
-        navigate("/time"); // Navegar a la página principal
+        // --- CAMBIO CRUCIAL AQUÍ ---
+        // Almacenar datos del usuario y el token, asegurándote de que isGuest sea false
+        const userToStore = {
+          ...data.user,     // Copia todos los datos del usuario del backend
+          isGuest: false,   // <-- ¡Asegúrate de establecer isGuest en false explícitamente!
+        };
+
+        setUserData(userToStore); // Actualiza el contexto de usuario
+        localStorage.setItem('userData', JSON.stringify(userToStore)); // Guarda en localStorage
+        localStorage.setItem('userToken', data.token); // Guarda el token
+
+        navigate('/time'); // Redirige a la página principal después del login exitoso
       } else {
-        // Mostrar el error que viene del backend (ej. "Correo no registrado")
-        setError(data.error || 'Error al iniciar sesión. Inténtalo de nuevo.');
+        setError(data.error || 'Error al iniciar sesión. Verifica tus credenciales.');
       }
-    } catch (err) {
-      console.error('Error de conexión:', err);
-      setError('No se pudo conectar con el servidor. Por favor, verifica tu conexión.');
+    } catch (error) {
+      console.error('Error de red o servidor:', error);
+      setError('Error de conexión. Inténtalo de nuevo más tarde.');
     }
   };
 
@@ -57,19 +61,21 @@ export default function LoginPage() {
     navigate("/register");
   };
 
-  // MODIFICADO: Función para manejar el inicio de sesión como invitado
+  // Asegúrate de que tu función handleGuestLogin también establezca isGuest: true correctamente
   const handleGuestLogin = () => {
-    setUserData({
-      isGuest: true,
-      // Puedes añadir datos dummy o null para invitados, según lo que necesites
-      token: null, // No hay token para invitados
-      rut: null,
-      email: "guest@example.com", // Un email dummy o null para invitados
-      nombres: "Invitado",
-      apellidos: "",
-      telefono: null
-    });
-    navigate("/time"); // Navegar a la página principal directamente
+    const guestUserData = {
+      rut: 'GUEST',
+      nombres: 'Invitado',
+      apellidos: '',
+      email: 'guest@example.com',
+      telefono: '',
+      ubicacion_texto: 'Concepcion', // O la ubicación por defecto que desees para invitados
+      isGuest: true, // <-- Esto es crucial para usuarios invitados
+    };
+    setUserData(guestUserData);
+    localStorage.setItem('userData', JSON.stringify(guestUserData));
+    // Los invitados no tienen token de autenticación
+    navigate('/time');
   };
 
   return (
