@@ -20,7 +20,6 @@ const camposDef = [
   { label: "Temperatura Minima (°C)", key: "temp_min" },
   { label: "Temperatura Máxima (°C)", key: "temp_max" },
   { label: "Viento Maximo (Km/h)", key: "viento_max" },
-  { label: "Visibilidad", key: "visibilidad" },
   { label: "Maxima Humedad", key: "sense_max" },
   { label: "Maximas Precipitaciones (mm/h)", key: "max_precipitaciones" }
 ];
@@ -75,7 +74,54 @@ const PerfilActividades = () => {
         id_actividad: perfilSeleccionado.id_actividad,
         climas: climasSeleccionados
       };
-
+      if (datosEditados.temp_min < -50) {
+        mostrarAlerta('La temperatura mínima no puede ser menor a -50°C', 'error');
+        return;
+      }
+      if (datosEditados.temp_max < -50) {
+        mostrarAlerta('La temperatura máxima no puede ser menor a -50°C', 'error');
+        return;
+      }
+      if (datosEditados.temp_min > 50) {
+        mostrarAlerta('La temperatura mínima no puede ser mayor a 50°C', 'error');
+        return;
+      }
+      if (datosEditados.temp_max > 50) {
+        mostrarAlerta('La temperatura máxima no puede ser mayor a 50°C', 'error');
+        return;
+      }
+      if (datosEditados.temp_max <= datosEditados.temp_min) {
+        mostrarAlerta('La temperatura máxima debe ser mayor que la mínima', 'error');
+        return;
+      }
+      if (datosEditados.viento_max < 0) {
+        mostrarAlerta('El viento máximo debe ser mayor a 0 Km/h', 'error');
+        return;
+      }
+      if (datosEditados.viento_max > 80) {
+        mostrarAlerta('El viento máximo no puede ser mayor a 80 Km/h', 'error');
+        return;
+      }
+      if (datosEditados.visibilidad < 0) {
+        mostrarAlerta('La visibilidad debe ser mayor a 0', 'error');
+        return;
+      }
+      if (datosEditados.visibilidad > 5) {
+        mostrarAlerta('La visibilidad debe ser menor a 5', 'error');
+        return;
+      }
+      if (datosEditados.sense_max < 0) {
+        mostrarAlerta('La humedad máxima debe ser mayor a 0', 'error');
+        return;
+      }
+      if (datosEditados.sense_max > 100) {
+        mostrarAlerta('La humedad máxima no puede ser mayor a 100', 'error');
+        return;
+      }
+      if (datosEditados.max_precipitaciones < 0) {
+        mostrarAlerta('Las precipitaciones máximas deben ser mayores a 0 mm/h', 'error');
+        return;
+      }
       await axios.put('http://localhost:4000/api/perfiles', payload);
 
       const res = await axios.get('http://localhost:4000/api/perfiles', {
