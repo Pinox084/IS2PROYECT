@@ -14,6 +14,7 @@ model Usuario {
   nombres         String              @db.VarChar(100)
   apellidos       String              @db.VarChar(100)
   telefono        String?             @db.VarChar(20)
+  ubicacion_texto String?             @db.VarChar(255)
   perfilActividad Perfil_Actividad[]
   actividades     Usuario_Actividad[]
   ubicacion_link  Usuario_Ubicacion?

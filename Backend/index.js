@@ -24,7 +24,7 @@ const {
 } = require('./controlActividades.js');
 // twilio será utlizado pera el envío de sms, tiene créditos limitados
 const twilioRouter = require('./twilioRouter');
-const { user } = require('pg/lib/defaults.js');
+//const { user } = require('pg/lib/defaults.js');
 
 dotenv.config();
 const app = express();
